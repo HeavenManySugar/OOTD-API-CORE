@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 //using NSwagSample.Models;
 // <snippet_Services>
 using NSwag;
+using OOTD_API.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +13,7 @@ builder.Services.AddOpenApiDocument(options => {
         {
             Version = "v1",
             Title = "ToDo API",
-            Description = "An ASP.NET Core Web API for managing ToDo items",
+            Description = "An ASP.NET Core Web API",
             TermsOfService = "https://example.com/terms",
             Contact = new OpenApiContact
             {
@@ -33,6 +34,9 @@ builder.Services.AddOpenApiDocument(options => {
 //    options.UseInMemoryDatabase("Todo"));
 
 builder.Services.AddControllers();
+builder.Services.AddDbContext<Ootdv1Context>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 var app = builder.Build();
 

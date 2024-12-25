@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace OOTD_API_ASP.NET_CORE.Models;
+namespace OOTD_API.Models;
 
 public partial class Ootdv1Context : DbContext
 {

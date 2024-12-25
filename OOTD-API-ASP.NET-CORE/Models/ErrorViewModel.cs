@@ -1,4 +1,4 @@
-namespace OOTD_API_ASP.NET_CORE.Models
+namespace OOTD_API.Models
 {
     public class ErrorViewModel
     {

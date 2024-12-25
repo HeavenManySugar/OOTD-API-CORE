@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace OOTD_API_ASP.NET_CORE.Models;
+namespace OOTD_API.Models;
 
 public partial class ProductImage
 {

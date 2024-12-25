@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using OOTD_API_ASP.NET_CORE.Models;
+using OOTD_API.Models;
 using System.Diagnostics;
 
-namespace OOTD_API_ASP.NET_CORE.Controllers
+namespace OOTD_API.Controllers
 {
     public class HomeController : Controller
     {

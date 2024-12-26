@@ -28,10 +28,18 @@ namespace OOTD_API.Security
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.Role, user.IsAdministrator ? "Admin" : "User"),
-                new Claim("IsSeller", storeExists ? "true" : "false")
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            if (user.IsAdministrator)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+            }
+
+            if (storeExists)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, "Seller"));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);

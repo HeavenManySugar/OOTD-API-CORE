@@ -2,16 +2,19 @@
 using System.Security.Claims;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
+using OOTDV1Entities = OOTD_API.Models.Ootdv1Context;
 
 
 namespace OOTD_API.Security
 {
     public class JwtAuthUtil 
     {
+        private readonly OOTDV1Entities db;
         private readonly IConfiguration _configuration;
 
-        public JwtAuthUtil(IConfiguration configuration)
+        public JwtAuthUtil(OOTDV1Entities db, IConfiguration configuration)
         {
+            this.db = db;
             _configuration = configuration;
         }
         /// <summary>
@@ -19,10 +22,15 @@ namespace OOTD_API.Security
         /// </summary>
         public string GenerateToken(int id)
         {
+            var user = db.Users.Find(id);
+            var storeExists = db.Stores.Any(x => x.Enabled && x.OwnerId == id);
+
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Role, user.IsAdministrator ? "Admin" : "User"),
+                new Claim("IsSeller", storeExists ? "true" : "false")
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));

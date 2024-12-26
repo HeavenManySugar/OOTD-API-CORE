@@ -16,7 +16,6 @@ namespace OOTD_API.Controllers
         private readonly OOTDV1Entities db;
         private readonly JwtAuthUtil _JwtAuthUtil;
 
-
         public UsersController(OOTDV1Entities db, JwtAuthUtil JwtAuthUtil)
         {
             this.db = db;

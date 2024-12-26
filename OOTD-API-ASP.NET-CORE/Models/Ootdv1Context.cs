@@ -84,7 +84,6 @@ public partial class Ootdv1Context : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("CouponID");
             entity.Property(e => e.Description).HasMaxLength(400);
-            entity.Property(e => e.Discount).HasColumnType("decimal(18, 0)");
             entity.Property(e => e.ExpireDate).HasColumnType("datetime");
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.StartDate).HasColumnType("datetime");

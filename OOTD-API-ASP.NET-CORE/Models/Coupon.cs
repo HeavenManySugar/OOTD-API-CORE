@@ -11,7 +11,7 @@ public partial class Coupon
 
     public string? Description { get; set; }
 
-    public decimal Discount { get; set; }
+    public double Discount { get; set; }
 
     public DateTime StartDate { get; set; }
 

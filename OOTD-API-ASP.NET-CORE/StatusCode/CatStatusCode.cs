@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +8,6 @@ namespace OOTD_API.StatusCode
     {
         public static IActionResult NotFound()
         {
-            // 創建 StatusMessage 物件，設置自定義訊息
             var statusMessage = new StatusMessage
             {
                 Message = "Not found meow meow.",
@@ -17,15 +15,16 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/404"
             };
 
-            // 創建 HttpResponseMessage 並設定狀態碼和內容
             var response = new HttpResponseMessage(HttpStatusCode.NotFound)
             {
                 Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
                 ReasonPhrase = "Not Found"
             };
 
-            // 回傳 ResponseMessage
-            return new ResponseMessageResult(response);
+            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
 
         public static IActionResult BadRequest()
@@ -43,7 +42,10 @@ namespace OOTD_API.StatusCode
                 ReasonPhrase = "Bad Request"
             };
 
-            return new ResponseMessageResult(response);
+            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
 
         public static IActionResult Ok()
@@ -61,7 +63,10 @@ namespace OOTD_API.StatusCode
                 ReasonPhrase = "Ok"
             };
 
-            return new ResponseMessageResult(response);
+            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
 
         public static HttpResponseMessage ForbiddenResponse()
@@ -83,7 +88,11 @@ namespace OOTD_API.StatusCode
 
         public static IActionResult Forbidden()
         {
-            return new ResponseMessageResult(ForbiddenResponse());
+            var response = ForbiddenResponse();
+            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
 
         public static IActionResult Unauthorized()
@@ -95,13 +104,16 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/401"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
             {
                 Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
                 ReasonPhrase = "Unauthorized"
             };
 
-            return new ResponseMessageResult(response);
+            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
 
         public static IActionResult Conflict()
@@ -119,14 +131,17 @@ namespace OOTD_API.StatusCode
                 ReasonPhrase = "Conflict"
             };
 
-            return new ResponseMessageResult(response);
+            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
 
         private class StatusMessage
         {
-            public string Message { get; set; }
+            public required string Message { get; set; }
             public int StatusCode { get; set; }
-            public string CatUrl { get; set; }
+            public required string CatUrl { get; set; }
         }
     }
 }

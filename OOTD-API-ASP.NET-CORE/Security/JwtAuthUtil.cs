@@ -1,65 +1,153 @@
-﻿using Jose;
-using OOTD_API.EntityFramework;
-using System;
-using System.Collections.Generic;
+﻿using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
-using System.Web.Configuration;
+using System.IdentityModel.Tokens.Jwt;
+
 
 namespace OOTD_API.Security
 {
-    public class JwtAuthUtil
+    public class JwtAuthUtil 
     {
-        private readonly OOTDV1Entities db = new OOTDV1Entities();
+        private readonly IConfiguration _configuration;
 
+        public JwtAuthUtil(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
         /// <summary>
         /// 生成 JwtToken
         /// </summary>
         public string GenerateToken(int id)
         {
-            string secretKey = WebConfigurationManager.AppSettings["TokenKey"];
-            var user = db.User.Find(id);
-
-            var payload = new Dictionary<string, object>
+            var claims = new List<Claim>
             {
-                { "UID", user.UID },
-                { "Username", user.Username },
-                { "Exp", DateTimeOffset.UtcNow.AddMinutes(30).ToString()}
+                new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            var token = JWT.Encode(payload, Encoding.UTF8.GetBytes(secretKey), JwsAlgorithm.HS512);
-            return token;
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(30),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         /// <summary>
         /// 生成只刷新效期的 JwtToken
         /// </summary>
-        public string ExpRefreshToken(Dictionary<string, object> tokenData)
+        public string ExpRefreshToken(Claim[] claims)
         {
-            string secretKey = WebConfigurationManager.AppSettings["TokenKey"];
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
 
-            var payload = tokenData;
-            payload["Exp"] = DateTimeOffset.UtcNow.AddMinutes(30).ToString();
+            var creds = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha512);
 
-            var token = JWT.Encode(payload, Encoding.UTF8.GetBytes(secretKey), JwsAlgorithm.HS512);
-            return token;
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(int.Parse(jwtSettings["TokenExpiryMinutes"])),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+
+        /// <summary>
+        /// 將 Token 解密取得夾帶的資料
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public Dictionary<string, object> GetToken(string token)
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var secretKey = jwtSettings["Key"];
+            if (secretKey == null)
+            {
+                throw new ArgumentNullException(nameof(secretKey), "Secret key cannot be null.");
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings["Issuer"],
+                ValidAudience = jwtSettings["Audience"],
+                IssuerSigningKey = key
+            };
+
+            SecurityToken validatedToken;
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out validatedToken);
+            var claims = principal.Claims.ToDictionary(c => c.Type, c => (object)c.Value);
+
+            return claims;
         }
 
         /// <summary>
-        /// 生成無效 JwtToken
+        /// 取得 Token 過期時間expires
         /// </summary>
-        public string RevokeToken()
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public DateTime GetTokenExpireDate(string token)
         {
-            string secretKey = "RevokeToken";
-
-            var payload = new Dictionary<string, object>
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var secretKey = jwtSettings["Key"];
+            if (secretKey == null)
             {
-                { "UID", 0 },
-                { "Username", "Revoke" },
-                { "Exp", DateTimeOffset.UtcNow.AddMinutes(-15).ToString()}
+                throw new ArgumentNullException(nameof(secretKey), "Secret key cannot be null.");
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings["Issuer"],
+                ValidAudience = jwtSettings["Audience"],
+                IssuerSigningKey = key
             };
 
-            var token = JWT.Encode(payload, Encoding.UTF8.GetBytes(secretKey), JwsAlgorithm.HS512);
-            return token;
+            SecurityToken validatedToken;
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out validatedToken);
+            var expireDate = validatedToken.ValidTo;
+
+            return expireDate;
         }
+
+        /// <summary>
+        /// 有在 Global 設定一律檢查 JwtToken 時才需設定排除，例如 Login 不需要驗證因為還沒有 token
+        /// </summary>
+        /// <param name="requestUri"></param>
+        /// <returns></returns>
+        public bool WithoutVerifyToken(string requestUri)
+        {
+            //if (requestUri.EndsWith("/login")) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// 驗證 token 時效
+        /// </summary>
+        /// <param name="dateTime"></param>
+        /// <returns></returns>
+        public bool IsTokenExpired(string dateTime)
+        {
+            return Convert.ToDateTime(dateTime) < DateTime.UtcNow;
+        }
+
     }
 }

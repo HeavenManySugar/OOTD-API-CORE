@@ -1,30 +1,75 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
+
 //using NSwagSample.Models;
 // <snippet_Services>
 using NSwag;
+using NSwag.Generation.Processors.Security;
 using OOTD_API.Models;
+using OOTD_API.Security;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApiDocument(options => {
-    options.PostProcess = document =>
+// 配置 JWT 驗證
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                var errorResponse = new
+                {
+                    Status = false,
+                    Message = "請重新登入"
+                };
+                return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(errorResponse));
+            }
+        };
+    });
+
+builder.Services.AddScoped<JwtAuthUtil>();
+
+builder.Services.AddOpenApiDocument(doc =>
+{
+    doc.AddSecurity("Bearer", Enumerable.Empty<string>(), new OpenApiSecurityScheme
+    {
+        Type = OpenApiSecuritySchemeType.ApiKey,
+        Name = "Authorization",
+        Description = "Type into the textbox: Bearer {your JWT token}.",
+        In = OpenApiSecurityApiKeyLocation.Header,
+        BearerFormat = "JWT",
+        Scheme = JwtBearerDefaults.AuthenticationScheme // 不填寫會影響 Filter 判斷錯誤
+    });
+    doc.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("Bearer"));
+
+    doc.PostProcess = document =>
     {
         document.Info = new OpenApiInfo
         {
             Version = "v1",
-            Title = "ToDo API",
+            Title = "OOTD API",
             Description = "An ASP.NET Core Web API",
             TermsOfService = "https://example.com/terms",
-            Contact = new OpenApiContact
-            {
-                Name = "Example Contact",
-                Url = "https://example.com/contact"
-            },
-            License = new OpenApiLicense
-            {
-                Name = "Example License",
-                Url = "https://example.com/license"
-            }
         };
     };
 });
@@ -62,6 +107,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -183,7 +183,7 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreProductAndSale")]
-        [ResponseType(typeof(List<ResponseProductDto>))]
+        [ResponseType(typeof(List<ResponseProductWithSaleDto>))]
         public IActionResult GetStoreProductAndSale()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
@@ -205,7 +205,7 @@ namespace OOTD_API.Controllers
                     Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
                     LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-                .Select(x => new ResponseProductDto
+                .Select(x => new ResponseProductWithSaleDto
                 {
                     ID = x.LastestPVC.ProductId,
                     Name = x.LastestPVC.Name,
@@ -236,12 +236,18 @@ namespace OOTD_API.Controllers
                 .First(x => x.Enabled && x.OwnerId == uid);
 
             var result = db.Ratings
+                .Include(r => r.Product)
+                .ThenInclude(p => p.ProductVersionControls)
+                .Include(r => r.Product.ProductImages)
                 .Where(x => x.Product.StoreId == store.StoreId)
                 .Select(x => new ResponseRatingDto
                 {
                     Username = x.UidNavigation.Username,
                     Rating = x.Rating1,
-                    CreatedAt = x.CreatedAt
+                    CreatedAt = x.CreatedAt,
+                    ProductID = x.ProductId,
+                    ProductName = x.Product.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault().Name,
+                    ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url
                 }).ToList();
             if (result.Count == 0)
                 return CatStatusCode.NotFound();

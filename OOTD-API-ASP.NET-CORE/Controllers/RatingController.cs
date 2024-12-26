@@ -36,17 +36,46 @@ namespace OOTD_API.Controllers
         {
             var result = db.Ratings
                 .Include(r => r.UidNavigation)
+                .Include(r => r.Product)
+                .ThenInclude(p => p.ProductVersionControls)
+                .Include(r => r.Product.ProductImages)
                 .Where(x => x.ProductId == productId)
                 .Select(x => new ResponseRatingDto()
                 {
                     Username = x.UidNavigation.Username,
                     Rating = x.Rating1,
-                    CreatedAt = x.CreatedAt
+                    CreatedAt = x.CreatedAt,
+                    ProductID = x.ProductId,
+                    ProductName = x.Product.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault().Name,
+                    ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url
                 })
                 .ToList();
             //if (result.Count == 0)
             //    return CatStatusCode.NotFound();
             return Ok(result);
+        }
+
+        /// <summary>
+        /// 取得剩餘留言次數
+        /// </summary>
+        [HttpGet]
+        [Authorize]
+        [Route("api/Rating/GetRemainingRatingTimes")]
+        [ResponseType(typeof(ResponseRemainingRatingDto))]
+        public IActionResult GetRemainingRatingTimes(int productId)
+        {
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            var orderCount = db.OrderDetails
+                .Include(od => od.Order)
+                .Include(od => od.Pvc)
+                .Count(x => x.Order.Uid == uid && x.Pvc.ProductId == productId);
+            var ratingCount = db.Ratings.Count(x => x.Uid == uid && x.ProductId == productId);
+            var remainingRatingTimes = Math.Max(0, orderCount - ratingCount);
+            return Ok(
+                new ResponseRemainingRatingDto()
+                {
+                    RemainingRatingTimes = remainingRatingTimes
+                });
         }
 
         /// <summary>
@@ -79,6 +108,11 @@ namespace OOTD_API.Controllers
             return CatStatusCode.Ok();
         }
 
+        public class ResponseRemainingRatingDto
+        {
+            public int RemainingRatingTimes { get; set; }
+        }
+
         public class RequestRatingDto
         {
             public int ProductID { get; set; }
@@ -90,6 +124,10 @@ namespace OOTD_API.Controllers
             public string Username { get; set; }
             public double Rating { get; set; }
             public DateTimeOffset CreatedAt { get; set; }
+            public int ProductID { get; set; }
+            public string ProductName { get; set; }
+            public string ProductImageUrl { get; set; }
+
         }
     }
 }

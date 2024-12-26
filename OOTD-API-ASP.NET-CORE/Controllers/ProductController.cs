@@ -42,7 +42,7 @@ namespace OOTD_API.Controllers
             var result = (isASC ? products.OrderBy(keySelector[orderField]) : products.OrderByDescending(keySelector[orderField]))
                 .Skip((page - 1) * pageLimitNumber)
                 .Take(pageLimitNumber)
-                .Select(x => new ResponseProductDto // 選擇輸出欄位
+                .Select(x => new ResponseProductWithSaleDto // 選擇輸出欄位
                 {
                     ID = x.LastestPVC.ProductId,
                     Name = x.LastestPVC.Name,
@@ -67,7 +67,7 @@ namespace OOTD_API.Controllers
 
         [HttpGet]
         [Route("~/api/Product/GetAllProducts")]
-        [ResponseType(typeof(List<ResponseProductsDto>))]
+        [ResponseType(typeof(ResponseProductsDto))]
         public IActionResult GetAllProducts(int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             var product = db.ProductVersionControls
@@ -97,7 +97,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Route("~/api/Product/GetStoreProducts")]
-        [ResponseType(typeof(List<ResponseProductDto>))]
+        [ResponseType(typeof(ResponseProductsDto))]
         public IActionResult GetStoreProducts(int storeId, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             var product = db.ProductVersionControls
@@ -168,7 +168,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Route("~/api/Product/SearchProducts")]
-        [ResponseType(typeof(List<ResponseProductDto>))]
+        [ResponseType(typeof(ResponseProductsDto))]
         public IActionResult SearchProducts(string keyword, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             keyword = keyword.ToLower();
@@ -207,34 +207,23 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Route("~/api/Product/GetTopProducts")]
-        [ResponseType(typeof(List<ResponseProductDto>))]
+        [ResponseType(typeof(ResponseProductsDto))]
         public IActionResult GetTopProducts(int count = 5)
         {
-            var result = db.ProductVersionControls
+            var product = db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
+                .Include(pvc => pvc.OrderDetails)
                 .GroupBy(x => x.ProductId)
-                .Select(x => new
+                .Select(x => new ProdcutWithSale()
                 {
-                    Id = x.Key,
-                    PVC = x.OrderByDescending(y => y.Version).FirstOrDefault(),
-                    Count = x.Sum(y => y.OrderDetails.Count)
+                    Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
+                    LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-                .OrderByDescending(x => x.Count)
-                .Take(count)
-                .AsEnumerable() // Switch to client-side evaluation
-                .Select(x => new ResponseProductDto
-                {
-                    ID = x.Id,
-                    Name = x.PVC.Name,
-                    Description = x.PVC.Description,
-                    Price = x.PVC.Price,
-                    Quantity = x.PVC.Product.Quantity,
-                    StoreID = x.PVC.Product.StoreId,
-                    Images = x.PVC.Product.ProductImages.Select(img => img.Url).ToList()
-                })
-                .ToList();
-            return Ok(result);
+            .ToList();
+
+            var result = GenerateProductPage(product, 1, count, ProductOrderField.Sale, false);
+            return Ok(result.Products);
         }
 
         /// <summary>
@@ -242,7 +231,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Route("~/api/Product/GetProduct")]
-        [ResponseType(typeof(ResponseProductDto))]
+        [ResponseType(typeof(ResponseProductWithSaleDto))]
         public IActionResult GetProduct(int id)
         {
             // 減掉用戶放進購物車的
@@ -271,7 +260,7 @@ namespace OOTD_API.Controllers
 
             var sale = PVC.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0);
 
-            var response = new ResponseProductDto
+            var response = new ResponseProductWithSaleDto
             {
                 ID = lastestPCV.ProductId,
                 Name = lastestPCV?.Name,
@@ -439,7 +428,7 @@ namespace OOTD_API.Controllers
         public class ResponseProductsDto
         {
             public int PageCount { get; set; }
-            public List<ResponseProductDto> Products { get; set; }
+            public List<ResponseProductWithSaleDto> Products { get; set; }
         }
 
         public class RequestModifyCartProductQuantityDto
@@ -455,9 +444,13 @@ namespace OOTD_API.Controllers
             public string Description { get; set; }
             public decimal Price { get; set; }
             public int Quantity { get; set; }
-            public int Sale { get; set; }
             public int StoreID { get; set; }
             public List<string> Images { get; set; }
+        }
+
+        public class ResponseProductWithSaleDto : ResponseProductDto
+        {
+            public int Sale { get; set; }
         }
 
         public class ResponseCartProductDto : ResponseProductDto

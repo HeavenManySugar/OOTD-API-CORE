@@ -66,6 +66,23 @@ namespace OOTD_API.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// 取得新的 JWT Token
+        /// </summary>
+        [HttpGet]
+        [Authorize]
+        [Route("api/User/GetRefreshedJWT")]
+        [ResponseType(typeof(TokenDto))]
+        public IActionResult GetRefreshedJWT()
+        {
+            string token = _JwtAuthUtil.ExpRefreshToken(User.Claims.ToArray());
+            return Ok(new TokenDto()
+            {
+                Token = token,
+                ExpireDate = DateTimeOffset.Parse(_JwtAuthUtil.GetTokenExpireDate(token).ToString())
+            });
+        }
+
         // <summary>
         // 使用者登入
         // </summary>
@@ -85,6 +102,67 @@ namespace OOTD_API.Controllers
                 Token = token,
                 ExpireDate = DateTimeOffset.Parse(_JwtAuthUtil.GetTokenExpireDate(token).ToString())
             });
+        }
+
+        /// <summary>
+        /// 使用者註冊
+        /// </summary>
+        [HttpPost]
+        [Route("api/User/Register")]
+        public IActionResult Register([FromBody] RequestRegisterDto dto)
+        {
+            // 檢查是否有相同 email
+            if (db.Users.Any(x => x.Email == dto.Email))
+                return CatStatusCode.Conflict();
+
+            User user = new User()
+            {
+                Uid = db.Users.Any() ? db.Users.Max(x => x.Uid) + 1 : 1,
+                Username = dto.Username,
+                Password = dto.Password,
+                Email = dto.Email,
+                Address = dto.Address,
+                IsAdministrator = false,
+                CreatedAt = DateTime.UtcNow,
+                Enabled = true
+            };
+            db.Users.Add(user);
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
+        /// <summary>
+        /// 變更密碼
+        /// </summary>
+        [HttpPut]
+        [Authorize]
+        [Route("api/User/ModifyPassword")]
+        public IActionResult ModifyPassword([FromBody] RequesetModifyPasswordDto dto)
+        {
+            var Uid = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var user = db.Users.Find(int.Parse(Uid));
+            if (user.Password != dto.OldPassword)
+                return CatStatusCode.Unauthorized();
+            user.Password = dto.NewPassword;
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
+        /// <summary>
+        /// 修改用戶資訊
+        /// </summary>
+        [HttpPut]
+        [Authorize]
+        [Route("api/User/ModifyUserInformation")]
+        [ResponseType(typeof(string))]
+        public IActionResult ModifyUserInformation([FromBody] RequestModifyUserInformationDto dto)
+        {
+            var Uid = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var user = db.Users.Find(int.Parse(Uid));
+            user.Username = dto.Username;
+            user.Address = dto.Address;
+            db.SaveChanges();
+            return CatStatusCode.Ok();
         }
 
         public class TokenDto

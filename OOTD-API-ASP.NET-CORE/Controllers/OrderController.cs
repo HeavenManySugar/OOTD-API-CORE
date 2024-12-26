@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using NSwag.Annotations;
 using System.IdentityModel.Tokens.Jwt;
 using OOTD_API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace OOTD_API.Controllers
 {
@@ -74,6 +75,11 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var order = db.Orders
+                .Include(o => o.Status)
+                .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Pvc)
+                .ThenInclude(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
                 .FirstOrDefault(x => x.Uid == uid && x.OrderId == orderId);
 
             if (order == null)

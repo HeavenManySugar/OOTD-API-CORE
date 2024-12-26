@@ -7,6 +7,7 @@ using NSwag.Annotations;
 using System.IdentityModel.Tokens.Jwt;
 using OOTD_API.Models;
 using Microsoft.Extensions.Primitives;
+using Microsoft.EntityFrameworkCore;
 
 namespace OOTD_API.Controllers
 {
@@ -70,15 +71,18 @@ namespace OOTD_API.Controllers
         public IActionResult GetAllProducts(int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             var product = db.ProductVersionControls
-                                            .Where(x => x.Product.Enabled)
-                                            .GroupBy(x => x.ProductId)
-                                            .Select(x =>
-                                            new ProdcutWithSale()
-                                            {
-                                                Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-                                                LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-                                            })
-                                            .ToList();
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
+                .Include(pvc => pvc.OrderDetails)
+                .Where(x => x.Product.Enabled)
+                .GroupBy(x => x.ProductId)
+                .Select(x =>
+                new ProdcutWithSale()
+                {
+                    Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
+                    LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
+                })
+                .ToList();
 
             var result = GenerateProductPage(product, page, pageLimitNumber, orderField, isASC);
 
@@ -97,15 +101,18 @@ namespace OOTD_API.Controllers
         public IActionResult GetStoreProducts(int storeId, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             var product = db.ProductVersionControls
-                                            .Where(x => x.Product.Enabled && x.Product.StoreId == storeId)
-                                            .GroupBy(x => x.ProductId)
-                                            .Select(x =>
-                                            new ProdcutWithSale()
-                                            {
-                                                Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-                                                LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-                                            })
-                                            .ToList();
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
+                .Include(pvc => pvc.OrderDetails)
+                .Where(x => x.Product.Enabled && x.Product.StoreId == storeId)
+                .GroupBy(x => x.ProductId)
+                .Select(x =>
+                new ProdcutWithSale()
+                {
+                    Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
+                    LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
+                })
+                .ToList();
 
             var result = GenerateProductPage(product, page, pageLimitNumber, orderField, isASC);
 
@@ -131,10 +138,12 @@ namespace OOTD_API.Controllers
                 return CatStatusCode.NotFound();
 
             var productVersionControls = db.ProductVersionControls
-                                            .Where(x => x.Product.Enabled)
-                                            .GroupBy(x => x.ProductId)
-                                            .Select(g => g.OrderByDescending(x => x.Version).FirstOrDefault())
-                                            .ToList();
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
+                .Where(x => x.Product.Enabled)
+                .GroupBy(x => x.ProductId)
+                .Select(g => g.OrderByDescending(x => x.Version).FirstOrDefault())
+                .ToList();
 
             var result = cart.Select(c =>
             {
@@ -164,17 +173,26 @@ namespace OOTD_API.Controllers
         {
             keyword = keyword.ToLower();
 
-            var product = db.ProductVersionControls
-                                            .Where(x => x.Product.Enabled)
-                                            .GroupBy(x => x.ProductId)
-                                            .Select(x =>
-                                            new ProdcutWithSale()
-                                            {
-                                                Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-                                                LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-                                            })
-                                            .Where(x => x.LastestPVC.Name.ToLower().Contains(keyword) || x.LastestPVC.Description.ToLower().Contains(keyword) || x.LastestPVC.Product.ProductKeywords.Any(y => y.Keyword.ToLower().Contains(keyword)))
-                                            .ToList();
+            var productVersionControls = db.ProductVersionControls
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
+                .Include(pvc => pvc.OrderDetails)
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductKeywords)
+                .Where(x => x.Product.Enabled)
+                .ToList(); // Switch to client-side evaluation
+
+
+            var product = productVersionControls
+                .GroupBy(x => x.ProductId)
+                .Select(x =>
+                new ProdcutWithSale()
+                {
+                    Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
+                    LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
+                })
+                .Where(x => x.LastestPVC.Name.ToLower().Contains(keyword) || x.LastestPVC.Description.ToLower().Contains(keyword) || x.LastestPVC.Product.ProductKeywords.Any(y => y.Keyword.ToLower().Contains(keyword)))
+                .ToList();
 
             var result = GenerateProductPage(product, page, pageLimitNumber, orderField, isASC);
 
@@ -193,6 +211,8 @@ namespace OOTD_API.Controllers
         public IActionResult GetTopProducts(int count = 5)
         {
             var result = db.ProductVersionControls
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
                 .GroupBy(x => x.ProductId)
                 .Select(x => new
                 {
@@ -202,6 +222,7 @@ namespace OOTD_API.Controllers
                 })
                 .OrderByDescending(x => x.Count)
                 .Take(count)
+                .AsEnumerable() // Switch to client-side evaluation
                 .Select(x => new ResponseProductDto
                 {
                     ID = x.Id,
@@ -243,6 +264,8 @@ namespace OOTD_API.Controllers
                 return CatStatusCode.NotFound();
 
             var lastestPCV = PVC
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
                 .OrderByDescending(x => x.Version)
                 .FirstOrDefault();
 
@@ -272,6 +295,8 @@ namespace OOTD_API.Controllers
         public IActionResult GetProdcutByPVCID(int PVCID)
         {
             var productVersionControl = db.ProductVersionControls
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
                 .Where(x => x.Product.Enabled)
                 .Where(x => x.Pvcid == PVCID)
                 .FirstOrDefault();
@@ -344,7 +369,9 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var cartProduct = db.CartProducts.FirstOrDefault(x => x.Uid == uid && x.ProductId == dto.ProductID);
+            var cartProduct = db.CartProducts
+                .Include(cp => cp.Product)
+                .FirstOrDefault(x => x.Uid == uid && x.ProductId == dto.ProductID);
             if (cartProduct == null)
                 return CatStatusCode.BadRequest();
 

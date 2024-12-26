@@ -15,15 +15,9 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/404"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.NotFound)
+            return new ObjectResult(statusMessage)
             {
-                Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
-                ReasonPhrase = "Not Found"
-            };
-
-            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
-            {
-                StatusCode = (int)response.StatusCode
+                StatusCode = statusMessage.StatusCode
             };
         }
 
@@ -36,15 +30,9 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/400"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+            return new ObjectResult(statusMessage)
             {
-                Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
-                ReasonPhrase = "Bad Request"
-            };
-
-            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
-            {
-                StatusCode = (int)response.StatusCode
+                StatusCode = statusMessage.StatusCode
             };
         }
 
@@ -57,19 +45,13 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/200"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            return new ObjectResult(statusMessage)
             {
-                Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
-                ReasonPhrase = "Ok"
-            };
-
-            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
-            {
-                StatusCode = (int)response.StatusCode
+                StatusCode = statusMessage.StatusCode
             };
         }
 
-        public static HttpResponseMessage ForbiddenResponse()
+        public static IActionResult Forbidden()
         {
             var statusMessage = new StatusMessage
             {
@@ -78,20 +60,9 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/403"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+            return new ObjectResult(statusMessage)
             {
-                Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
-                ReasonPhrase = "Forbidden"
-            };
-            return response;
-        }
-
-        public static IActionResult Forbidden()
-        {
-            var response = ForbiddenResponse();
-            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
-            {
-                StatusCode = (int)response.StatusCode
+                StatusCode = statusMessage.StatusCode
             };
         }
 
@@ -104,15 +75,9 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/401"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            return new ObjectResult(statusMessage)
             {
-                Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
-                ReasonPhrase = "Unauthorized"
-            };
-
-            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
-            {
-                StatusCode = (int)response.StatusCode
+                StatusCode = statusMessage.StatusCode
             };
         }
 
@@ -125,15 +90,9 @@ namespace OOTD_API.StatusCode
                 CatUrl = "https://http.cat/409"
             };
 
-            var response = new HttpResponseMessage(HttpStatusCode.Conflict)
+            return new ObjectResult(statusMessage)
             {
-                Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(statusMessage), Encoding.UTF8, "application/json"),
-                ReasonPhrase = "Conflict"
-            };
-
-            return new ObjectResult(response.Content.ReadAsStringAsync().Result)
-            {
-                StatusCode = (int)response.StatusCode
+                StatusCode = statusMessage.StatusCode
             };
         }
 

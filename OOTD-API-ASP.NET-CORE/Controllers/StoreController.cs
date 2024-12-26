@@ -8,6 +8,7 @@ using OOTDV1Entities = OOTD_API.Models.Ootdv1Context;
 using System.IdentityModel.Tokens.Jwt;
 using NSwag.Annotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace OOTD_API.Controllers
@@ -105,7 +106,18 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var store = db.Stores
-                .First(x => x.Enabled && x.OwnerId == uid);
+                .Include(s => s.Owner) // Ensure Owner is loaded
+                .FirstOrDefault(x => x.Enabled && x.OwnerId == uid);
+
+            if (store == null)
+            {
+                return NotFound("Store not found.");
+            }
+
+            if (store.Owner == null)
+            {
+                return BadRequest("Store owner information is missing.");
+            }
 
             var result = new ResponseStoreDto
             {
@@ -170,18 +182,22 @@ namespace OOTD_API.Controllers
 
 
             var store = db.Stores
-                .First(x => x.Enabled && x.OwnerId == uid);
+                .Include(s => s.Owner)
+                .FirstOrDefault(x => x.Enabled && x.OwnerId == uid);
 
-            var products = db.ProductVersionControls
-                .Where(x => x.Product.StoreId == store.StoreId && x.Product.Enabled)
-                .GroupBy(x => x.ProductId)
-                .Select(x =>
-                new ProdcutWithSale()
+            var productGroups = db.ProductVersionControls
+            .Include(s => s.Product)
+            .Where(x => x.Product.StoreId == store.StoreId && x.Product.Enabled)
+            .GroupBy(x => x.ProductId)
+            .ToList(); // Execute the query up to this point
+
+            var products = productGroups
+                .Select(x => new ProdcutWithSale()
                 {
                     Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
                     LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-                .Select(x => new ResponseProductDto // 選擇輸出欄位
+                .Select(x => new ResponseProductDto
                 {
                     ID = x.LastestPVC.ProductId,
                     Name = x.LastestPVC.Name,
@@ -192,6 +208,7 @@ namespace OOTD_API.Controllers
                     Sale = x.Sale,
                     Images = x.LastestPVC.Product.ProductImages.Select(img => img.Url).ToList()
                 }).ToList();
+
 
             return Ok(products);
         }

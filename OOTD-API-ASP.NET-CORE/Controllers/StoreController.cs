@@ -36,6 +36,7 @@ namespace OOTD_API.Controllers
         public IActionResult SearchStores(string keyword, int page = 1, int pageLimitNumber = 3)
         {
             var allFilterStores = db.Stores
+                .Include(s => s.Owner)
                 .Where(x => x.Enabled)
                 .Where(x => x.Name.Contains(keyword) || x.Description.Contains(keyword))
                 .Select(x => new ResponseStoreDto
@@ -80,6 +81,7 @@ namespace OOTD_API.Controllers
         public IActionResult GetStoreById(int storeID)
         {
             var store = db.Stores
+                .Include(s => s.Owner)
                 .FirstOrDefault(x => x.Enabled && x.StoreId == storeID);
             if (store == null)
                 return CatStatusCode.NotFound();
@@ -106,7 +108,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var store = db.Stores
-                .Include(s => s.Owner) // Ensure Owner is loaded
+                .Include(s => s.Owner)
                 .FirstOrDefault(x => x.Enabled && x.OwnerId == uid);
 
             if (store == null)
@@ -144,6 +146,12 @@ namespace OOTD_API.Controllers
                 .First(x => x.Enabled && x.OwnerId == uid);
 
             var orderDetails = db.OrderDetails
+                .Include(od => od.Pvc)
+                .ThenInclude(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
+                .Include(od => od.Order)
+                .ThenInclude(o => o.Status)
+                .Include(od => od.Order.Coupon)
                 .Where(x => x.Pvc.Product.StoreId == store.StoreId)
                 .GroupBy(x => x.Order)
                 .Select(x =>

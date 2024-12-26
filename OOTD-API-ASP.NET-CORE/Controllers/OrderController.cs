@@ -113,9 +113,8 @@ namespace OOTD_API.Controllers
         [Route("~/api/Order/MakeOrder")]
         public IActionResult MakeOrder([FromBody] RequestOrderDto dto)
         {
-            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);            // 檢查庫存
 
-            // 檢查庫存
             foreach (var detail in dto.Details)
             {
                 var product = db.Products.FirstOrDefault(p => p.ProductId == detail.ProductID);
@@ -128,7 +127,7 @@ namespace OOTD_API.Controllers
             }
 
             // 優惠券使用
-            if (dto.CouponID != 0)
+            if (dto.CouponID != null)
             {
                 var userCoupon = db.UserCoupons.Where(x => x.Uid == uid && x.CouponId == dto.CouponID).First();
                 userCoupon.Quantity -= 1;
@@ -142,7 +141,7 @@ namespace OOTD_API.Controllers
                 StatusId = 4,
                 CreatedAt = DateTime.UtcNow
             };
-            if (dto.CouponID != 0)
+            if (dto.CouponID != null)
                 order.CouponId = dto.CouponID;
 
             // 建立訂單細節並扣除庫存
@@ -154,7 +153,10 @@ namespace OOTD_API.Controllers
                 {
                     OrderDetailId = orderDetailIDAcc++,
                     OrderId = order.OrderId,
-                    Pvcid = db.Products.FirstOrDefault(x => x.ProductId == detail.ProductID).ProductVersionControls.OrderByDescending(x => x.Version).FirstOrDefault().Pvcid,
+                    Pvcid = db.Products
+                    .Include(p => p.ProductVersionControls)
+                    .FirstOrDefault(x => x.ProductId == detail.ProductID).ProductVersionControls.OrderByDescending(x => x.Version)
+                    .FirstOrDefault().Pvcid,
                     Quantity = detail.Quantity
                 };
                 var product = db.Products.FirstOrDefault(p => p.ProductId == detail.ProductID);
@@ -170,7 +172,7 @@ namespace OOTD_API.Controllers
 
         public class RequestOrderDto
         {
-            public int CouponID { get; set; }
+            public int? CouponID { get; set; }
             public List<RequestOrderDetailDto> Details { get; set; }
         }
 

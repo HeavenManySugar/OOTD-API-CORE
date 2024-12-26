@@ -6,6 +6,8 @@ using System.IdentityModel.Tokens.Jwt;
 using NSwag.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using OOTD_API.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Drawing.Printing;
 
 
 namespace OOTD_API.Controllers
@@ -33,6 +35,7 @@ namespace OOTD_API.Controllers
         public IActionResult GetProductRating(int productId)
         {
             var result = db.Ratings
+                .Include(r => r.UidNavigation)
                 .Where(x => x.ProductId == productId)
                 .Select(x => new ResponseRatingDto()
                 {
@@ -41,8 +44,8 @@ namespace OOTD_API.Controllers
                     CreatedAt = x.CreatedAt
                 })
                 .ToList();
-            if (result.Count == 0)
-                return CatStatusCode.NotFound();
+            //if (result.Count == 0)
+            //    return CatStatusCode.NotFound();
             return Ok(result);
         }
 

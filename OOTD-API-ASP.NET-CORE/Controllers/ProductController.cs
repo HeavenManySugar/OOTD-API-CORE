@@ -250,7 +250,7 @@ namespace OOTD_API.Controllers
             if (!StringValues.IsNullOrEmpty(Request.Headers.Authorization))
             {
                 var userToken = _JwtAuthUtil.GetToken(Request.Headers.Authorization.ToString());
-                var uid = (int)userToken[JwtRegisteredClaimNames.Sub];
+                var uid = int.Parse(userToken[JwtRegisteredClaimNames.Sub].ToString());
                 var cartProduct = db.CartProducts
                     .FirstOrDefault(x => x.Uid == uid && x.ProductId == id);
                 if (cartProduct != null)
@@ -330,6 +330,7 @@ namespace OOTD_API.Controllers
 
             // 已經存在的產品
             var cart = db.CartProducts
+                .Include(c => c.Product)
                 .Where(x => x.Uid == uid && x.ProductId == dto.ProductID)
                 .FirstOrDefault();
             if (cart != null)

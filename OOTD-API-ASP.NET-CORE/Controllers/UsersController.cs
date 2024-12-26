@@ -37,7 +37,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        [Route("api/User/GetUser")]
+        [Route("~/api/User/GetUser")]
         [Authorize]
         [ResponseType(typeof(ResponseUserDto))]
         public IActionResult GetUser()
@@ -70,7 +70,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Authorize]
-        [Route("api/User/GetRefreshedJWT")]
+        [Route("~/api/User/GetRefreshedJWT")]
         [ResponseType(typeof(TokenDto))]
         public IActionResult GetRefreshedJWT()
         {
@@ -86,7 +86,7 @@ namespace OOTD_API.Controllers
         // 使用者登入
         // </summary>
         [HttpPost]
-        [Route("api/User/Login")]
+        [Route("~/api/User/Login")]
         [ResponseType(typeof(TokenDto))]
         public IActionResult Login([FromBody] RequestLoginDto dto)
         {
@@ -107,7 +107,7 @@ namespace OOTD_API.Controllers
         /// 使用者註冊
         /// </summary>
         [HttpPost]
-        [Route("api/User/Register")]
+        [Route("~/api/User/Register")]
         public IActionResult Register([FromBody] RequestRegisterDto dto)
         {
             // 檢查是否有相同 email
@@ -135,7 +135,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPut]
         [Authorize]
-        [Route("api/User/ModifyPassword")]
+        [Route("~/api/User/ModifyPassword")]
         public IActionResult ModifyPassword([FromBody] RequesetModifyPasswordDto dto)
         {
             var Uid = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -152,7 +152,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPut]
         [Authorize]
-        [Route("api/User/ModifyUserInformation")]
+        [Route("~/api/User/ModifyUserInformation")]
         [ResponseType(typeof(string))]
         public IActionResult ModifyUserInformation([FromBody] RequestModifyUserInformationDto dto)
         {

@@ -78,10 +78,9 @@ builder.Services.AddOpenApiDocument(doc =>
 //builder.Services.AddDbContext<TodoContext>(options =>
 //    options.UseInMemoryDatabase("Todo"));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
 builder.Services.AddDbContext<Ootdv1Context>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 
 var app = builder.Build();
 
@@ -118,6 +117,7 @@ using (var serviceScope = app.Services.CreateScope())
 
     //context.TodoItems.Add(new TodoItem { Name = "Item #1" });
     //await context.SaveChangesAsync();
+
 }
 
 app.Run();

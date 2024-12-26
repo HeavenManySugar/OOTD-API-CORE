@@ -104,7 +104,7 @@ namespace OOTD_API.Security
             };
 
             SecurityToken validatedToken;
-            var principal = tokenHandler.ValidateToken(token, validationParameters, out validatedToken);
+            var principal = tokenHandler.ValidateToken(token.Replace("Bearer ", string.Empty), validationParameters, out validatedToken);
             var claims = principal.Claims.ToDictionary(c => c.Type, c => (object)c.Value);
 
             return claims;

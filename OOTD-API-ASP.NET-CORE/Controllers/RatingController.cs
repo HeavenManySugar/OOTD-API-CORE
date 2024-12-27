@@ -60,7 +60,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Authorize]
-        [Route("api/Rating/GetRemainingRatingTimes")]
+        [Route("~/api/Rating/GetRemainingRatingTimes")]
         [ResponseType(typeof(ResponseRemainingRatingDto))]
         public IActionResult GetRemainingRatingTimes(int productId)
         {

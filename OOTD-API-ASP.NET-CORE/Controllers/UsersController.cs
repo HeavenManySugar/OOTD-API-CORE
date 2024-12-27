@@ -82,6 +82,42 @@ namespace OOTD_API.Controllers
             });
         }
 
+        /// <summary>
+        /// 管理員取得所有用戶資訊
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        [Route("api/User/GetUsers")]
+        [ResponseType(typeof(ResponseUsersForAdminDto))]
+        public IActionResult GetUsers(int page = 1, int pageLimitNumber = 50, bool isASC = true)
+        {
+            var temp = isASC ? db.Users.OrderBy(x => x.Uid) : db.Users.OrderByDescending(x => x.Uid);
+            var result = temp
+                .Skip((page - 1) * pageLimitNumber)
+                .Take(pageLimitNumber)
+                .Select(x => new ResponseUserForAdminDto
+                {
+                    UID = x.Uid,
+                    Username = x.Username,
+                    Email = x.Email,
+                    Address = x.Address,
+                    CreatedAt = x.CreatedAt,
+                    Enabled = x.Enabled
+                }).ToList();
+            if (result.Count == 0)
+                return CatStatusCode.NotFound();
+            int count = db.Users.Count();
+            if (count % pageLimitNumber == 0)
+                count = count / pageLimitNumber;
+            else
+                count = count / pageLimitNumber + 1;
+            return Ok(new ResponseUsersForAdminDto()
+            {
+                PageCount = count,
+                Users = result.ToList()
+            });
+        }
+
         // <summary>
         // 使用者登入
         // </summary>
@@ -129,6 +165,23 @@ namespace OOTD_API.Controllers
             db.SaveChanges();
             return CatStatusCode.Ok();
         }
+
+        /// <summary>
+        /// 管理員修改用戶 enabled 狀態
+        /// </summary>
+        [HttpPut]
+        [Authorize(Roles = "Admin")]
+        [Route("api/User/ModifyUserEnabled")]
+        public IActionResult ModifyUserEnabled(RequestModifyUserEnabledDto dto)
+        {
+            if (!db.Users.Any(x => x.Uid == dto.UID))
+                return CatStatusCode.BadRequest();
+            var user = db.Users.Find(dto.UID);
+            user.Enabled = dto.enabled;
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
 
         /// <summary>
         /// 變更密碼
@@ -209,6 +262,26 @@ namespace OOTD_API.Controllers
             public string Password { get; set; }
             public string Email { get; set; }
             public string Address { get; set; }
+        }
+
+        public class ResponseUsersForAdminDto
+        {
+            public int PageCount { get; set; }
+            public List<ResponseUserForAdminDto> Users { get; set; }
+        }
+        public class ResponseUserForAdminDto
+        {
+            public int UID { get; set; }
+            public string Username { get; set; }
+            public string Email { get; set; }
+            public string Address { get; set; }
+            public DateTimeOffset CreatedAt { get; set; }
+            public bool Enabled { get; set; }
+        }
+        public class RequestModifyUserEnabledDto
+        {
+            public int UID { get; set; }
+            public bool enabled { get; set; }
         }
     }
 }

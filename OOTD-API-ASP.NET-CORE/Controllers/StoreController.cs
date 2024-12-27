@@ -254,6 +254,74 @@ namespace OOTD_API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// 管理員取得所有商店資訊
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        [Route("~/api/Store/GetStores")]
+        [ResponseType(typeof(ResponseStoresForAdminDto))]
+        public IActionResult GetStores(int page = 1, int pageLimitNumber = 50, bool isASC = true)
+        {
+            var temp = isASC ? db.Stores.OrderBy(x => x.StoreId) : db.Stores.OrderByDescending(x => x.StoreId);
+            var result = temp
+               .Include(s => s.Owner)
+               .Skip((page - 1) * pageLimitNumber)
+               .Take(pageLimitNumber)
+               .Select(x => new ResponseStoreForAdminDto
+               {
+                   StoreID = x.StoreId,
+                   OwnerID = x.OwnerId,
+                   OwnerUsername = x.Owner.Username,
+                   Name = x.Name,
+                   Description = x.Description,
+                   Enabled = x.Enabled
+               }).ToList();
+            if (result.Count == 0)
+                return CatStatusCode.NotFound();
+            int count = db.Stores.Count();
+            if (count % pageLimitNumber == 0)
+                count = count / pageLimitNumber;
+            else
+                count = count / pageLimitNumber + 1;
+            return Ok(new ResponseStoresForAdminDto()
+            {
+                PageCount = count,
+                Stores = result.ToList()
+            });
+        }
+        /// <summary>
+        /// 管理員修改商店 enabled 狀態
+        /// </summary>
+        [HttpPut]
+        [Authorize(Roles = "Admin")]
+        [Route("~/api/Store/ModifyStoreEnabled")]
+        public IActionResult ModifyStoreEnabled(RequestModifyStoreEnabledDto dto)
+        {
+            if (!db.Stores.Any(x => x.StoreId == dto.StoreID))
+                return CatStatusCode.BadRequest();
+            var store = db.Stores.Find(dto.StoreID);
+            store.Enabled = dto.Enabled;
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
+        public class RequestModifyStoreEnabledDto
+        {
+            public int StoreID { get; set; }
+            public bool Enabled { get; set; }
+        }
+        public class ResponseStoresForAdminDto
+        {
+            public int PageCount { get; set; }
+            public List<ResponseStoreForAdminDto> Stores { get; set; }
+        }
+        public class ResponseStoreForAdminDto : ResponseStoreDto
+        {
+            public int OwnerID { get; set; }
+            public bool Enabled { get; set; }
+        }
+
         public class ResponseStoreDto
         {
             public int StoreID { get; set; }

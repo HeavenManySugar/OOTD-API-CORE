@@ -10,6 +10,7 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
+using Microsoft.CodeAnalysis;
 
 namespace OOTD_API.Controllers
 {
@@ -371,12 +372,19 @@ namespace OOTD_API.Controllers
                 Price = dto.Price,
                 Version = 1
             };
+            db.ProductVersionControls.Add(pvc);
+
+            int keywordIndex = db.ProductKeywords.Any() ? db.ProductKeywords.Max(y => y.ProduckKeywordId) + 1 : 1;
             // keywords
-            db.ProductKeywords.AddRange(dto.Keywords.Select(x => new ProductKeyword()
+            dto.Keywords.ForEach(x =>
             {
-                ProductId = product.ProductId,
-                Keyword = x
-            }));
+                db.ProductKeywords.Add(new ProductKeyword()
+                {
+                    ProduckKeywordId = keywordIndex++,
+                    ProductId = product.ProductId,
+                    Keyword = x
+                });
+            });
             db.SaveChanges();
             return Ok(new ResponseCreateProductDto()
             {

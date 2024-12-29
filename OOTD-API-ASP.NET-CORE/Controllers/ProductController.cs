@@ -8,6 +8,8 @@ using System.IdentityModel.Tokens.Jwt;
 using OOTD_API.Models;
 using Microsoft.Extensions.Primitives;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Net.Http.Headers;
 
 namespace OOTD_API.Controllers
 {
@@ -308,6 +310,103 @@ namespace OOTD_API.Controllers
         }
 
         /// <summary>
+        /// 賣家上傳商品圖片 (請使用 form-data)
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Seller")]
+        [Route("api/Product/UploadProductImages")]
+        public async Task<IActionResult> UploadProductImages(int productID, [FromForm] UploadProductImageDto dto)
+        {
+            try
+            {
+                // Read the multipart data and save the files
+                int firstID = db.ProductImages.Any() ? db.ProductImages.Max(x => x.Id) + 1 : 1;
+                foreach (var file in dto.files)
+                {
+                    var link = await UploadImgeToImgur(file);
+                    db.ProductImages.Add(new ProductImage()
+                    {
+                        Id = firstID++,
+                        ProductId = productID,
+                        Url = link
+                    });
+                }
+                db.SaveChanges();
+                return CatStatusCode.Ok();
+            }
+            catch (Exception ex)
+            {
+                return CatStatusCode.BadRequest();
+            }
+        }
+
+        /// <summary>
+        /// 賣家建立商品
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Seller")]
+        [Route("api/Product/CreateProduct")]
+        [ResponseType(typeof(ResponseCreateProductDto))]
+        public IActionResult CreateProduct(RequestCreateProductDto dto)
+        {
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            int storeID = db.Stores.FirstOrDefault(x => x.OwnerId == uid).StoreId;
+            var product = new Product()
+            {
+                ProductId = db.Products.Any() ? db.Products.Max(x => x.ProductId) + 1 : 1,
+                StoreId = storeID,
+                CreatedAt = DateTime.UtcNow,
+                Enabled = true,
+                Quantity = dto.Quantity
+            };
+            // product
+            db.Products.Add(product);
+            // PVC
+            var pvc = new ProductVersionControl()
+            {
+                Pvcid = db.ProductVersionControls.Any() ? db.ProductVersionControls.Max(x => x.Pvcid) + 1 : 1,
+                ProductId = product.ProductId,
+                Name = dto.Name,
+                Description = dto.Description,
+                Price = dto.Price,
+                Version = 1
+            };
+            // keywords
+            db.ProductKeywords.AddRange(dto.Keywords.Select(x => new ProductKeyword()
+            {
+                ProductId = product.ProductId,
+                Keyword = x
+            }));
+            db.SaveChanges();
+            return Ok(new ResponseCreateProductDto()
+            {
+                ProductID = product.ProductId
+            });
+        }
+
+        private async Task<string> UploadImgeToImgur(IFormFile file)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.imgur.com/3/image");
+            request.Headers.Add("Authorization", "Bearer 9c028fd5d56810d5d476b712734db37ef3e520fd");
+            var content = new MultipartFormDataContent();
+            using (var stream = new MemoryStream())
+            {
+                await file.CopyToAsync(stream);
+                var byteContent = new ByteArrayContent(stream.ToArray());
+                byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+                content.Add(byteContent, "image", file.FileName);
+            }
+            content.Add(new StringContent("PoNUlEH"), "album");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var responseString = await response.Content.ReadAsStringAsync();
+            var imgurResponse = JsonConvert.DeserializeObject<ImgurResponse>(responseString);
+            return imgurResponse?.Data?.Link ?? throw new InvalidOperationException("Imgur upload failed");
+        }
+
+        /// <summary>
         /// 新增商品到購物車
         /// </summary>
         [HttpPost]
@@ -414,6 +513,23 @@ namespace OOTD_API.Controllers
             Sale,
             Quantity
         }
+        public class UploadProductImageDto
+        {
+            public List<IFormFile> files { get; set; }
+        }
+
+        public class ResponseCreateProductDto
+        {
+            public int ProductID { get; set; }
+        }
+        public class RequestCreateProductDto
+        {
+            public string Name { get; set; }
+            public string Description { get; set; }
+            public decimal Price { get; set; }
+            public int Quantity { get; set; }
+            public List<string> Keywords { get; set; }
+        }
 
         public class ProdcutWithSale
         {
@@ -463,5 +579,16 @@ namespace OOTD_API.Controllers
             public int ProductID { get; set; }
             public int Quantity { get; set; }
         }
+
+        // Model for Imgur response
+        public class ImgurResponse
+        {
+            public ImgurData Data { get; set; }
+        }
+        public class ImgurData
+        {
+            public string Link { get; set; }
+        }
+
     }
 }

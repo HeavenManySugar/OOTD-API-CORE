@@ -363,7 +363,7 @@ namespace OOTD_API.Controllers
                 Quantity = dto.Quantity
             };
             // product
-            db.Products.Add(product); // cf8a627
+            db.Products.Add(product);
             // PVC
             var pvc = new ProductVersionControl()
             {

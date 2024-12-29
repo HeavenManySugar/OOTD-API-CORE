@@ -86,7 +86,7 @@ namespace OOTD_API.Controllers
             {
                 MessageId = db.Messages.Any() ? db.Messages.Max(x => x.MessageId) + 1 : 1,
                 SenderId = uid,
-                ReceiverId = dto.ContactUID,
+                ReceiverId = dto.ReceiverID,
                 Message1 = dto.Message,
                 CreatedAt = DateTime.UtcNow
             };
@@ -110,7 +110,7 @@ namespace OOTD_API.Controllers
 
         public class RequestSendMessageDto
         {
-            public int ContactUID { get; set; }
+            public int ReceiverID { get; set; }
             public string Message { get; set; }
         }
     }

@@ -350,6 +350,8 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(ResponseCreateProductDto))]
         public IActionResult CreateProduct(RequestCreateProductDto dto)
         {
+            if (dto.Price < 0 || dto.Quantity < 0)
+                return CatStatusCode.BadRequest();
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
             int storeID = db.Stores.FirstOrDefault(x => x.OwnerId == uid).StoreId;
             var product = new Product()
@@ -361,7 +363,7 @@ namespace OOTD_API.Controllers
                 Quantity = dto.Quantity
             };
             // product
-            db.Products.Add(product);
+            db.Products.Add(product); // cf8a627
             // PVC
             var pvc = new ProductVersionControl()
             {

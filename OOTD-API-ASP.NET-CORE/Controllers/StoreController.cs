@@ -42,6 +42,7 @@ namespace OOTD_API.Controllers
                 .Select(x => new ResponseStoreDto
                 {
                     StoreID = x.StoreId,
+                    OwnerID = x.OwnerId,
                     OwnerUsername = x.Owner.Username,
                     Name = x.Name,
                     Description = x.Description
@@ -53,13 +54,7 @@ namespace OOTD_API.Controllers
             var stores = allFilterStores
                 .Skip((page - 1) * pageLimitNumber)
                 .Take(pageLimitNumber)
-                .Select(x => new ResponseStoreDto
-                {
-                    StoreID = x.StoreID,
-                    OwnerUsername = x.OwnerUsername,
-                    Name = x.Name,
-                    Description = x.Description
-                }).ToList();
+                .ToList();
 
             if (stores.Count == 0)
                 return CatStatusCode.NotFound();
@@ -89,6 +84,7 @@ namespace OOTD_API.Controllers
             var result = new ResponseStoreDto
             {
                 StoreID = store.StoreId,
+                OwnerID = store.OwnerId,
                 OwnerUsername = store.Owner.Username,
                 Name = store.Name,
                 Description = store.Description
@@ -325,6 +321,7 @@ namespace OOTD_API.Controllers
         public class ResponseStoreDto
         {
             public int StoreID { get; set; }
+            public int OwnerID { get; set; }
             public string OwnerUsername { get; set; }
             public string Name { get; set; }
             public string Description { get; set; }

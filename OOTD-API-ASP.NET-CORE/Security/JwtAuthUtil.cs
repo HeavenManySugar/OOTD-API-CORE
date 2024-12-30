@@ -48,7 +48,7 @@ namespace OOTD_API.Security
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(30),
+                expires: DateTime.UtcNow.AddMinutes(30),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
@@ -68,7 +68,7 @@ namespace OOTD_API.Security
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(int.Parse(jwtSettings["TokenExpiryMinutes"])),
+                expires: DateTime.UtcNow.AddMinutes(int.Parse(jwtSettings["TokenExpiryMinutes"])),
                 signingCredentials: creds
             );
 

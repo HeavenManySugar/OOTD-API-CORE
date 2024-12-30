@@ -78,7 +78,7 @@ namespace OOTD_API.Controllers
             return Ok(new TokenDto()
             {
                 Token = token,
-                ExpireDate = DateTimeOffset.Parse(_JwtAuthUtil.GetTokenExpireDate(token).ToString())
+                ExpireDate = _JwtAuthUtil.GetTokenExpireDate(token)
             });
         }
 
@@ -135,7 +135,7 @@ namespace OOTD_API.Controllers
             return Ok(new TokenDto()
             {
                 Token = token,
-                ExpireDate = DateTimeOffset.Parse(_JwtAuthUtil.GetTokenExpireDate(token).ToString())
+                ExpireDate = _JwtAuthUtil.GetTokenExpireDate(token)
             });
         }
 

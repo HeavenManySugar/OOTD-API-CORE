@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: Abcd1234
+    ports:
+      - "1433:1433"
+    # volumes:
+    #   - db-data:/var/opt/mssql/data
+    user: "root"
+volumes:
+  db-data:
+    

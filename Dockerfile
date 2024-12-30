@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=build-env /app/out .
 
 # Expose the port the app runs on
-EXPOSE 5000
+EXPOSE 8080
 
 # Set the entry point for the container
 ENTRYPOINT ["dotnet", "OOTD-API-ASP.NET-CORE.dll"]

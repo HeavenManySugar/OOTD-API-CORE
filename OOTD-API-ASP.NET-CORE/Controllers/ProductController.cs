@@ -318,6 +318,11 @@ namespace OOTD_API.Controllers
         [Route("api/Product/UploadProductImages")]
         public async Task<IActionResult> UploadProductImages(int productID, [FromForm] UploadProductImageDto dto)
         {
+            // 產品不是該賣家的
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            if (!db.Products.Any(x => x.ProductId == productID && x.Store.OwnerId == uid))
+                return CatStatusCode.BadRequest();
+
             try
             {
                 // Read the multipart data and save the files
@@ -426,6 +431,10 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
+            // 沒有這個商品
+            if (!db.Products.Any(x => x.ProductId == dto.ProductID))
+                return CatStatusCode.BadRequest();
+
             // 已經存在的產品
             var cart = db.CartProducts
                 .Include(c => c.Product)
@@ -467,6 +476,10 @@ namespace OOTD_API.Controllers
         public IActionResult ModifyProductQuantityInCart([FromBody] RequestModifyCartProductQuantityDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+
+            // 沒有這個商品
+            if (!db.Products.Any(x => x.ProductId == dto.ProductID))
+                return CatStatusCode.BadRequest();
 
             var cartProduct = db.CartProducts
                 .Include(cp => cp.Product)

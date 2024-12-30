@@ -9,8 +9,11 @@ services:
       database:
         condition: service_healthy
     restart: always
+    volumes:
+      - dataprotection-keys:/root/.aspnet/DataProtection-Keys
     networks:
       - ootd-network
+
   database:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
@@ -24,7 +27,7 @@ services:
     networks:
       - ootd-network
     healthcheck:
-      test: [ "CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "Abcd1234", "-C", "-Q", "SELECT 1" ]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Abcd1234 -C -Q 'SELECT 1'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,10 +38,11 @@ services:
       /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Abcd1234 -C -Q 'IF DB_ID(\"OOTDV1\") IS NULL BEGIN RESTORE DATABASE [OOTDV1] FROM DISK = \"/var/opt/mssql/backup/OOTDV2.bak\" WITH MOVE \"OOTDV1\" TO \"/var/opt/mssql/data/OOTDV1.mdf\", MOVE \"OOTDV1_log\" TO \"/var/opt/mssql/data/OOTDV1_log.ldf\" END' && 
       wait
       "
+
 volumes:
   db-data:
   dataprotection-keys:
 
 networks:
   ootd-network:
-      driver: bridge
+    driver: bridge

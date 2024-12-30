@@ -99,7 +99,10 @@ var app = builder.Build();
 
     // Add web UIs to interact with the document
     // Available at: http://localhost:<port>/swagger
-    app.UseSwaggerUi(); // UseSwaggerUI is called only in Development.
+    app.UseSwaggerUi(c =>
+    {
+        c.DocExpansion = "list";
+    });
 
     // Add ReDoc UI to interact with the document
     // Available at: http://localhost:<port>/redoc

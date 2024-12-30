@@ -20,7 +20,7 @@ services:
       - "1433:1433"
     volumes:
       - db-data:/var/opt/mssql/data
-      - /Users/zhangruien/Documents/code/OOTD-API-CORE/OOTDV2.bak:/var/opt/mssql/backup/OOTDV2.bak
+      - ./OOTDV2.bak:/var/opt/mssql/backup/OOTDV2.bak
     networks:
       - ootd-network
     healthcheck:
@@ -28,10 +28,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    command: >
+      /bin/bash -c "
+      /opt/mssql/bin/sqlservr & 
+      sleep 30s && 
+      /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Abcd1234 -C -Q 'IF DB_ID(\"OOTDV1\") IS NULL BEGIN RESTORE DATABASE [OOTDV1] FROM DISK = \"/var/opt/mssql/backup/OOTDV2.bak\" WITH MOVE \"OOTDV1\" TO \"/var/opt/mssql/data/OOTDV1.mdf\", MOVE \"OOTDV1_log\" TO \"/var/opt/mssql/data/OOTDV1_log.ldf\" END' && 
+      wait
+      "
 volumes:
   db-data:
   dataprotection-keys:
 
 networks:
   ootd-network:
-      driver: bridge 
+      driver: bridge

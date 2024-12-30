@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using NSwag.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using OOTD_API.Models;
 
 
 namespace OOTD_API.Controllers
@@ -286,6 +287,50 @@ namespace OOTD_API.Controllers
                 Stores = result.ToList()
             });
         }
+
+        /// <summary>
+        /// 管理員幫賣家建立商店
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [Route("api/Store/CreateStore")]
+        public IActionResult CreateStore(RequestCreateStoreDto dto)
+        {
+            // 沒有這個用戶
+            if (!db.Users.Any(x => x.Uid == dto.OwnerID))
+                return CatStatusCode.BadRequest();
+            // 這個用戶已經有商店
+            if (db.Stores.Any(x => x.OwnerId == dto.OwnerID))
+                return CatStatusCode.BadRequest();
+            var store = new Store()
+            {
+                StoreId = db.Stores.Any() ? db.Stores.Max(x => x.StoreId) + 1 : 1,
+                OwnerId = dto.OwnerID,
+                Name = dto.Name,
+                Description = dto.Description,
+                Enabled = true
+            };
+            db.Stores.Add(store);
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+        /// <summary>
+        /// 賣家修改商店資訊
+        /// </summary>
+        [HttpPut]
+        [Authorize(Roles = "Seller")]
+        [Route("api/Store/ModifyStore")]
+        public IActionResult ModifyStore(RequestModifyStoreDto dto)
+        {
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            var store = db.Stores
+                .First(x => x.OwnerId == uid);
+            store.Name = dto.Name;
+            store.Description = dto.Description;
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
         /// <summary>
         /// 管理員修改商店 enabled 狀態
         /// </summary>
@@ -302,6 +347,19 @@ namespace OOTD_API.Controllers
             return CatStatusCode.Ok();
         }
 
+        public class RequestModifyStoreDto
+        {
+            public string Name { get; set; }
+            public string Description { get; set; }
+        }
+        public class RequestCreateStoreDto
+        {
+            public int OwnerID { get; set; }
+            public string Name { get; set; }
+            public string Description { get; set; }
+        }
+
+
         public class RequestModifyStoreEnabledDto
         {
             public int StoreID { get; set; }
@@ -314,7 +372,6 @@ namespace OOTD_API.Controllers
         }
         public class ResponseStoreForAdminDto : ResponseStoreDto
         {
-            public int OwnerID { get; set; }
             public bool Enabled { get; set; }
         }
 

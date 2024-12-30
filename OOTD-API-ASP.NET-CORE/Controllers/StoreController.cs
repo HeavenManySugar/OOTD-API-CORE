@@ -135,7 +135,7 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreOrders")]
-        [ResponseType(typeof(List<RequestOrderDto>))]
+        [ResponseType(typeof(List<ResponseOrderDto>))]
         public IActionResult GetStoreOrders()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);

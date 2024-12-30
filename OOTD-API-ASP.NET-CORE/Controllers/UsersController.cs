@@ -88,7 +88,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        [Route("api/User/GetUsers")]
+        [Route("~/api/User/GetUsers")]
         [ResponseType(typeof(ResponseUsersForAdminDto))]
         public IActionResult GetUsers(int page = 1, int pageLimitNumber = 50, bool isASC = true)
         {
@@ -172,7 +172,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPut]
         [Authorize(Roles = "Admin")]
-        [Route("api/User/ModifyUserEnabled")]
+        [Route("~/api/User/ModifyUserEnabled")]
         public IActionResult ModifyUserEnabled(RequestModifyUserEnabledDto dto)
         {
             if (!db.Users.Any(x => x.Uid == dto.UID))

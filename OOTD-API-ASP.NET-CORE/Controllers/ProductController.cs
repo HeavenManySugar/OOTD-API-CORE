@@ -315,7 +315,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = "Seller")]
-        [Route("api/Product/UploadProductImages")]
+        [Route("~/api/Product/UploadProductImages")]
         public async Task<IActionResult> UploadProductImages(int productID, [FromForm] UploadProductImageDto dto)
         {
             // 產品不是該賣家的
@@ -351,7 +351,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = "Seller")]
-        [Route("api/Product/CreateProduct")]
+        [Route("~/api/Product/CreateProduct")]
         [ResponseType(typeof(ResponseCreateProductDto))]
         public IActionResult CreateProduct(RequestCreateProductDto dto)
         {
@@ -503,7 +503,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPut]
         [Authorize(Roles = "Seller")]
-        [Route("api/Product/ModifyProduct")]
+        [Route("~/api/Product/ModifyProduct")]
         public IActionResult ModifyProduct(RequestModifyProductDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);

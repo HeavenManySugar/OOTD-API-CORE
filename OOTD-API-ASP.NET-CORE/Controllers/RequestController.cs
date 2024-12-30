@@ -55,7 +55,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpGet]
         [Authorize]
-        [Route("api/Request/GetOwnRequests")]
+        [Route("~/api/Request/GetOwnRequests")]
         [ResponseType(typeof(List<ResponseOwnRequestDto>))]
         public IActionResult GetOwnRequests()
         {
@@ -101,7 +101,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPut]
         [Authorize(Roles = "Admin")]
-        [Route("api/Request/ModifyRequestStatus")]
+        [Route("~/api/Request/ModifyRequestStatus")]
         public IActionResult ModifyRequestStatus(int requestID, Status status)
         {
             if (!db.Requests.Any(x => x.RequestId == requestID))

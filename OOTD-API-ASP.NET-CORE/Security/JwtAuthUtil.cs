@@ -105,7 +105,12 @@ namespace OOTD_API.Security
 
             SecurityToken validatedToken;
             var principal = tokenHandler.ValidateToken(token.Replace("Bearer ", string.Empty), validationParameters, out validatedToken);
-            var claims = principal.Claims.ToDictionary(c => c.Type, c => (object)c.Value);
+
+            // 移除重複的 key
+            var claims = principal.Claims
+                .GroupBy(c => c.Type)
+                .Select(g => g.First())
+                .ToDictionary(c => c.Type, c => (object)c.Value);
 
             return claims;
         }

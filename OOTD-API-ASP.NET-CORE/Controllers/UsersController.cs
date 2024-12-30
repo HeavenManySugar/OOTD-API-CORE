@@ -6,6 +6,7 @@ using OOTD_API.Security;
 using OOTD_API.StatusCode;
 using OOTDV1Entities = OOTD_API.Models.Ootdv1Context;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore;
 
 namespace OOTD_API.Controllers
 {
@@ -48,7 +49,7 @@ namespace OOTD_API.Controllers
                 return BadRequest("User ID is missing in the token.");
             }
 
-            var user = db.Users.Find(int.Parse(Uid));
+            var user = db.Users.Include(u => u.Stores).FirstOrDefault(x => x.Uid == int.Parse(Uid));
             if (user == null)
             {
                 return NotFound("User not found.");

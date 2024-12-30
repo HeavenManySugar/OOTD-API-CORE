@@ -85,8 +85,8 @@ builder.Services.AddDbContext<Ootdv1Context>(options =>
 var app = builder.Build();
 
 // <snippet_Middleware>
-if (app.Environment.IsDevelopment())
-{
+// if (app.Environment.IsDevelopment())
+// {
     // Add OpenAPI 3.0 document serving middleware
     // Available at: http://localhost:<port>/swagger/v1/swagger.json
     app.UseOpenApi();
@@ -101,7 +101,7 @@ if (app.Environment.IsDevelopment())
     {
         options.Path = "/redoc";
     });
-}
+// }
 // </snippet_Middleware>
 
 app.UseCors(builder => builder

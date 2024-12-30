@@ -121,6 +121,7 @@ namespace OOTD_API.Controllers
             var result = new ResponseStoreDto
             {
                 StoreID = store.StoreId,
+                OwnerID = store.OwnerId,
                 OwnerUsername = store.Owner.Username,
                 Name = store.Name,
                 Description = store.Description
@@ -293,7 +294,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        [Route("api/Store/CreateStore")]
+        [Route("~/api/Store/CreateStore")]
         public IActionResult CreateStore(RequestCreateStoreDto dto)
         {
             // 沒有這個用戶
@@ -319,7 +320,7 @@ namespace OOTD_API.Controllers
         /// </summary>
         [HttpPut]
         [Authorize(Roles = "Seller")]
-        [Route("api/Store/ModifyStore")]
+        [Route("~/api/Store/ModifyStore")]
         public IActionResult ModifyStore(RequestModifyStoreDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);

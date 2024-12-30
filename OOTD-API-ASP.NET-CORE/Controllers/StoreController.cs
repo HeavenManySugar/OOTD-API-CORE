@@ -151,16 +151,15 @@ namespace OOTD_API.Controllers
                 .ThenInclude(o => o.Status)
                 .Include(od => od.Order.Coupon)
                 .Where(x => x.Pvc.Product.StoreId == store.StoreId)
-                .GroupBy(x => x.Order)
-                .Select(x =>
-                new ResponseOrderDto()
+                .GroupBy(x => new { x.Order.OrderId, x.Order.CreatedAt, x.Order.Status.Status1, CouponDiscount = x.Order.Coupon == null ? 1 : x.Order.Coupon.Discount })
+                .Select(g => new ResponseOrderDto()
                 {
-                    OrderID = x.Key.OrderId,
-                    CreateAt = x.Key.CreatedAt,
-                    Status = x.Key.Status.Status1,
-                    Amount = x.Sum(y => y.Quantity * y.Pvc.Price),
-                    Discount = x.Key.Coupon == null ? 1 : x.Key.Coupon.Discount,
-                    Details = x.Select(y => new ResponseOrderDetailDto()
+                    OrderID = g.Key.OrderId,
+                    CreateAt = g.Key.CreatedAt,
+                    Status = g.Key.Status1,
+                    Amount = g.Sum(y => y.Quantity * y.Pvc.Price),
+                    Discount = g.Key.CouponDiscount,
+                    Details = g.Select(y => new ResponseOrderDetailDto()
                     {
                         PVCID = y.Pvcid,
                         Name = y.Pvc.Name,

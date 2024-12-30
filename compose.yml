@@ -6,7 +6,11 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    restart: always
+    networks:
+      - ootd-network
   database:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
@@ -14,9 +18,20 @@ services:
       MSSQL_SA_PASSWORD: Abcd1234
     ports:
       - "1433:1433"
-    # volumes:
-    #   - db-data:/var/opt/mssql/data
-    user: "root"
+    volumes:
+      - db-data:/var/opt/mssql/data
+      - /Users/zhangruien/Documents/code/OOTD-API-CORE/OOTDV2.bak:/var/opt/mssql/backup/OOTDV2.bak
+    networks:
+      - ootd-network
+    healthcheck:
+      test: [ "CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "Abcd1234", "-C", "-Q", "SELECT 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 volumes:
   db-data:
-    
+  dataprotection-keys:
+
+networks:
+  ootd-network:
+      driver: bridge 

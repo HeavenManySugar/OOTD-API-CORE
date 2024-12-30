@@ -485,6 +485,42 @@ namespace OOTD_API.Controllers
             return CatStatusCode.Ok();
         }
 
+                /// <summary>
+        /// 賣家修改產品資訊
+        /// </summary>
+        [HttpPut]
+        [Authorize(Roles = "Seller")]
+        [Route("api/Product/ModifyProduct")]
+        public IActionResult ModifyProduct(RequestModifyProductDto dto)
+        {
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            // 沒有這個商品
+            if (!db.Products.Any(x => x.ProductId == dto.ProductID))
+                return CatStatusCode.BadRequest();
+            var product = db.Products.Include(p => p.Store).FirstOrDefault(p => p.ProductId == dto.ProductID);
+            // 商品不屬於這個賣家
+            if (product.Store.OwnerId != uid)
+                return CatStatusCode.BadRequest();
+            product.Quantity = dto.Quantity;
+            product.Enabled = dto.Enabled;
+            var latestPVC = product.ProductVersionControls?.OrderByDescending(x => x.Version).FirstOrDefault();
+            if (latestPVC == null || (latestPVC.Name != dto.Name || latestPVC.Description != dto.Description || latestPVC.Price != dto.Price))
+            {
+                var pvc = new ProductVersionControl()
+                {
+                    Pvcid = db.ProductVersionControls.Any() ? db.ProductVersionControls.Max(x => x.Pvcid) + 1 : 1,
+                    ProductId = product.ProductId,
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Price = dto.Price,
+                    Version = latestPVC == null ? 1 : latestPVC.Version + 1
+                };
+                db.ProductVersionControls.Add(pvc);
+            }
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
         /// <summary>
         /// 從購物車移除商品
         /// </summary>
@@ -527,6 +563,17 @@ namespace OOTD_API.Controllers
         {
             public List<IFormFile> files { get; set; }
         }
+
+        public class RequestModifyProductDto
+        {
+            public int ProductID { get; set; }
+            public bool Enabled { get; set; }
+            public int Quantity { get; set; }
+            public string Name { get; set; }
+            public string Description { get; set; }
+            public decimal Price { get; set; }
+        }
+
 
         public class ResponseCreateProductDto
         {

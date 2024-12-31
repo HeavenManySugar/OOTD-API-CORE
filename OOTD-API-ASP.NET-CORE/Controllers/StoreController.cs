@@ -135,7 +135,7 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreOrders")]
-        [ResponseType(typeof(List<ResponseOrderDto>))]
+        [ResponseType(typeof(List<ResponseStoreOrderDto>))]
         public IActionResult GetStoreOrders()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
@@ -150,15 +150,18 @@ namespace OOTD_API.Controllers
                 .Include(od => od.Order)
                 .ThenInclude(o => o.Status)
                 .Include(od => od.Order.Coupon)
+                .Include(od => od.Order.UidNavigation)
                 .Where(x => x.Pvc.Product.StoreId == store.StoreId)
-                .GroupBy(x => new { x.Order.OrderId, x.Order.CreatedAt, x.Order.Status.Status1, CouponDiscount = x.Order.Coupon == null ? 1 : x.Order.Coupon.Discount })
-                .Select(g => new ResponseOrderDto()
+                .GroupBy(x => new { x.Order.OrderId, x.Order.CreatedAt, x.Order.Status.Status1, CouponDiscount = x.Order.Coupon == null ? 1 : x.Order.Coupon.Discount , x.Order.UidNavigation})
+                .Select(g => new ResponseStoreOrderDto()
                 {
                     OrderID = g.Key.OrderId,
                     CreateAt = g.Key.CreatedAt,
                     Status = g.Key.Status1,
                     Amount = g.Sum(y => y.Quantity * y.Pvc.Price),
                     Discount = g.Key.CouponDiscount,
+                    Address = g.Key.UidNavigation.Address,
+                    Username = g.Key.UidNavigation.Username,
                     Details = g.Select(y => new ResponseOrderDetailDto()
                     {
                         PVCID = y.Pvcid,
@@ -345,6 +348,12 @@ namespace OOTD_API.Controllers
             store.Enabled = dto.Enabled;
             db.SaveChanges();
             return CatStatusCode.Ok();
+        }
+
+        public class ResponseStoreOrderDto : OrderController.ResponseOrderDto
+        {
+            public string Address { get; set; }
+            public string Username { get; set; }
         }
 
         public class RequestModifyStoreDto

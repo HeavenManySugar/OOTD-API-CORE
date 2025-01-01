@@ -141,7 +141,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var store = db.Stores
-                .First(x => x.OwnerID == uid);
+                .First(x => x.OwnerId == uid);
 
             var orderDetails = db.OrderDetails
                 .Include(od => od.Pvc)
@@ -183,7 +183,7 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreProductAndSale")]
-        [ResponseType(typeof(List<ResponseProductWithSaleDto>))]
+        [ResponseType(typeof(List<ResponseStoreProductWithSaleDto>))]
         public IActionResult GetStoreProductAndSale()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
@@ -205,7 +205,7 @@ namespace OOTD_API.Controllers
                     Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
                     LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-                .Select(x => new ResponseProductWithSaleDto
+                .Select(x => new ResponseStoreProductWithSaleDto
                 {
                     ID = x.LastestPVC.ProductId,
                     Name = x.LastestPVC.Name,
@@ -214,6 +214,7 @@ namespace OOTD_API.Controllers
                     Quantity = x.LastestPVC.Product.Quantity,
                     StoreID = x.LastestPVC.Product.StoreId,
                     Sale = x.Sale,
+                    Enabled = x.LastestPVC.Product.Enabled,
                     Images = x.LastestPVC.Product.ProductImages.Select(img => img.Url).ToList()
                 }).ToList();
 
@@ -350,7 +351,11 @@ namespace OOTD_API.Controllers
             return CatStatusCode.Ok();
         }
 
-        public class ResponseStoreOrderDto : OrderController.ResponseOrderDto
+        public class ResponseStoreProductWithSaleDto : ResponseProductWithSaleDto
+        {
+            public bool Enabled { get; set; }
+        }
+        public class ResponseStoreOrderDto : ResponseOrderDto
         {
             public string Address { get; set; }
             public string Username { get; set; }

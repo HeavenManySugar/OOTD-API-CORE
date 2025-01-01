@@ -141,7 +141,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var store = db.Stores
-                .First(x => x.Enabled && x.OwnerId == uid);
+                .First(x => x.OwnerID == uid);
 
             var orderDetails = db.OrderDetails
                 .Include(od => od.Pvc)

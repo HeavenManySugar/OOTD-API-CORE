@@ -565,6 +565,29 @@ namespace OOTD_API.Controllers
             return CatStatusCode.Ok();
         }
 
+        /// <summary>
+        /// 賣家移除商品照片
+        /// </summary>
+        [HttpDelete]
+        [Authorize(Roles = "Seller")]
+        [Route("~/api/Product/RemoveProductImages")]
+        public IActionResult RemoveProductImages(RequestRemoveProductImagesDto dto)
+        {
+            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+            // 產品不是該賣家的
+            if (!db.Products.Any(x => x.ProductId == dto.ProductID && x.Store.OwnerId == uid))
+                return CatStatusCode.BadRequest();
+            foreach (string url in dto.Urls)
+            {
+                var image = db.ProductImages.FirstOrDefault(x => x.ProductId == dto.ProductID && x.Url == url);
+                if (image == null)
+                    return CatStatusCode.BadRequest();
+                db.ProductImages.Remove(image);
+            }
+            db.SaveChanges();
+            return CatStatusCode.Ok();
+        }
+
         public enum ProductOrderField
         {
             Default,
@@ -572,6 +595,14 @@ namespace OOTD_API.Controllers
             Sale,
             Quantity
         }
+
+        public class RequestRemoveProductImagesDto
+        {
+            public int ProductID { get; set; }
+            public List<string> Urls { get; set; }
+        }
+
+
         public class UploadProductImageDto
         {
             public List<IFormFile> files { get; set; }

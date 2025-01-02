@@ -23,7 +23,7 @@ services:
       - "1433:1433"
     volumes:
       - db-data:/var/opt/mssql/data
-      - ./OOTDV2.bak:/var/opt/mssql/backup/OOTDV2.bak
+      - ./OOTDV3.bak:/var/opt/mssql/backup/OOTDV2.bak
     networks:
       - ootd-network
     healthcheck:

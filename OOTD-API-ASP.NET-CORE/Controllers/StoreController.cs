@@ -152,7 +152,8 @@ namespace OOTD_API.Controllers
                 .Include(od => od.Order.Coupon)
                 .Include(od => od.Order.UidNavigation)
                 .Where(x => x.Pvc.Product.StoreId == store.StoreId)
-                .GroupBy(x => new { x.Order.OrderId, x.Order.CreatedAt, x.Order.Status.Status1, CouponDiscount = x.Order.Coupon == null ? 1 : x.Order.Coupon.Discount , x.Order.UidNavigation})
+                .ToList() // 先執行查詢
+                .GroupBy(x => new { x.Order.OrderId, x.Order.CreatedAt, x.Order.Status.Status1, CouponDiscount = x.Order.Coupon == null ? 1 : x.Order.Coupon.Discount, x.Order.UidNavigation })
                 .Select(g => new ResponseStoreOrderDto()
                 {
                     OrderID = g.Key.OrderId,

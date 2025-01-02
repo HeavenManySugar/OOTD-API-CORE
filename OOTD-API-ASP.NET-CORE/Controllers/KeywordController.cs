@@ -2,6 +2,7 @@
 using OOTD_API.StatusCode;
 using Microsoft.AspNetCore.Mvc;
 using NSwag.Annotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace OOTD_API.Controllers
 {
@@ -22,9 +23,9 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Route("~/api/Keyword/GetTopKeyword")]
         [ResponseType(typeof(List<string>))]
-        public IActionResult GetTopKeyword(int count = 5)
+        public async Task<IActionResult> GetTopKeyword(int count = 5)
         {
-            var result = db.ProductKeywords
+            var result = await db.ProductKeywords
                 .Select(x => new
                 {
                     Keyword = x.Keyword,
@@ -39,7 +40,8 @@ namespace OOTD_API.Controllers
                 .OrderByDescending(x => x.Count)
                 .Take(count)
                 .Select(x => x.Keyword)
-                .ToList();
+                .ToListAsync();
+
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(result);

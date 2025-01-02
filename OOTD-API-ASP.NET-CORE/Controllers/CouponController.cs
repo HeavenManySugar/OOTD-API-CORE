@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using NSwag.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using OOTD_API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace OOTD_API.Controllers
 {
@@ -30,11 +31,11 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Coupon/GetUserCoupons")]
         [ResponseType(typeof(List<ResponseUserCouponDto>))]
-        public IActionResult GetUserCoupons()
+        public async Task<IActionResult> GetUserCoupons()
         {
             var Uid = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
-            var result = db.UserCoupons
+            var result = await db.UserCoupons
                 .Where(x => x.Coupon.Enabled && DateTime.UtcNow >= x.Coupon.StartDate && DateTime.UtcNow <= x.Coupon.ExpireDate)
                 .Where(x => x.Uid == int.Parse(Uid ?? "0") && x.Quantity > 0)
                 .Select(x => new ResponseUserCouponDto
@@ -46,7 +47,7 @@ namespace OOTD_API.Controllers
                     StartDate = x.Coupon.StartDate,
                     ExpireDate = x.Coupon.ExpireDate,
                     Quantity = x.Quantity
-                }).ToList();
+                }).ToListAsync();
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(result);
@@ -59,9 +60,9 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Admin")]
         [Route("~/api/Coupon/GetAllCoupons")]
         [ResponseType(typeof(List<ResponseCouponDto>))]
-        public IActionResult GetAllCoupons()
+        public async Task<IActionResult> GetAllCoupons()
         {
-            var result = db.Coupons
+            var result = await db.Coupons
                 .Select(x =>
                     new ResponseCouponDto
                     {
@@ -73,7 +74,7 @@ namespace OOTD_API.Controllers
                         ExpireDate = x.ExpireDate,
                         Enabled = x.Enabled
                     }
-                ).ToList();
+                ).ToListAsync();
 
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
@@ -87,11 +88,11 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Coupon/AddCoupon")]
-        public IActionResult AddCoupon(RequestAddCouponDto dto)
+        public async Task<IActionResult> AddCoupon(RequestAddCouponDto dto)
         {
             var coupon = new Coupon()
             {
-                CouponId = db.Coupons.Any() ? db.Coupons.Max(x => x.CouponId) + 1 : 1,
+                CouponId = await db.Coupons.AnyAsync() ? await db.Coupons.MaxAsync(x => x.CouponId) + 1 : 1,
                 Name = dto.Name,
                 Description = dto.Description,
                 Discount = dto.Discount,
@@ -100,8 +101,8 @@ namespace OOTD_API.Controllers
                 Enabled = dto.Enabled,
             };
 
-            db.Coupons.Add(coupon);
-            db.SaveChanges();
+            await db.Coupons.AddAsync(coupon);
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -111,17 +112,17 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Coupon/GiveCouponToAllUser")]
-        public IActionResult GiveCouponToAllUser(int couponId, int count)
+        public async Task<IActionResult> GiveCouponToAllUser(int couponId, int count)
         {
-            var couponFlag = db.Coupons.Any(x => x.CouponId == couponId);
+            var couponFlag = await db.Coupons.AnyAsync(x => x.CouponId == couponId);
             if (!couponFlag)
                 return CatStatusCode.BadRequest();
 
-            var userCoupons = db.UserCoupons.Where(x => x.CouponId == couponId).ToList();
+            var userCoupons = await db.UserCoupons.Where(x => x.CouponId == couponId).ToListAsync();
             userCoupons.ForEach(x => x.Quantity += count);
 
-            int lastId = db.UserCoupons.Any() ? db.UserCoupons.Max(x => x.UserCouponId) + 1 : 1;
-            var users = db.Users.Where(x => !x.UserCoupons.Any(y => y.CouponId == couponId)).ToList();
+            int lastId = await db.UserCoupons.AnyAsync() ? await db.UserCoupons.MaxAsync(x => x.UserCouponId) + 1 : 1;
+            var users = await db.Users.Where(x => !x.UserCoupons.Any(y => y.CouponId == couponId)).ToListAsync();
             users.ForEach(x =>
                 db.UserCoupons.Add(new UserCoupon()
                 {
@@ -131,7 +132,7 @@ namespace OOTD_API.Controllers
                     Quantity = count
                 }));
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -141,29 +142,29 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Coupon/GiveCouponToSpecificlUser")]
-        public IActionResult GiveCouponToSpecificlUser(RequsetGiveCouponToSpecificlUserDto dto)
+        public async Task<IActionResult> GiveCouponToSpecificlUser(RequsetGiveCouponToSpecificlUserDto dto)
         {
-            var couponFlag = db.Coupons.Any(x => x.CouponId == dto.CouponID);
-            var userFlag = db.Users.Any(x => x.Uid == dto.UID);
+            var couponFlag = await db.Coupons.AnyAsync(x => x.CouponId == dto.CouponID);
+            var userFlag = await db.Users.AnyAsync(x => x.Uid == dto.UID);
             if (!(couponFlag && userFlag))
                 return CatStatusCode.BadRequest();
 
-            var userCoupon = db.UserCoupons.FirstOrDefault(x => x.CouponId == dto.Count && x.Uid == dto.UID);
+            var userCoupon = await db.UserCoupons.FirstOrDefaultAsync(x => x.CouponId == dto.CouponID && x.Uid == dto.UID);
             if (userCoupon != null)
             {
                 userCoupon.Quantity += dto.Count;
             }
             else
             {
-                db.UserCoupons.Add(new UserCoupon()
+                await db.UserCoupons.AddAsync(new UserCoupon()
                 {
-                    UserCouponId = db.UserCoupons.Any() ? db.UserCoupons.Max(x => x.UserCouponId) + 1 : 1,
+                    UserCouponId = await db.UserCoupons.AnyAsync() ? await db.UserCoupons.MaxAsync(x => x.UserCouponId) + 1 : 1,
                     Uid = dto.UID,
                     CouponId = dto.CouponID,
                     Quantity = dto.Count
                 });
             }
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -173,9 +174,9 @@ namespace OOTD_API.Controllers
         [HttpPut]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Coupon/ModifyCoupon")]
-        public IActionResult ModifyCoupon(ResponseCouponDto dto)
+        public async Task<IActionResult> ModifyCoupon(ResponseCouponDto dto)
         {
-            var coupon = db.Coupons.FirstOrDefault(x => x.CouponId == dto.CouponID);
+            var coupon = await db.Coupons.FirstOrDefaultAsync(x => x.CouponId == dto.CouponID);
             if (coupon == null)
                 return CatStatusCode.NotFound();
 
@@ -184,7 +185,7 @@ namespace OOTD_API.Controllers
             coupon.StartDate = dto.StartDate.UtcDateTime;
             coupon.ExpireDate = dto.ExpireDate.UtcDateTime;
             coupon.Enabled = dto.Enabled;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

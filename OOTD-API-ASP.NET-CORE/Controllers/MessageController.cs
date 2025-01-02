@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using NSwag.Annotations;
 using System.IdentityModel.Tokens.Jwt;
 using OOTD_API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace OOTD_API.Controllers
 {
@@ -20,7 +21,6 @@ namespace OOTD_API.Controllers
         {
             this.db = db;
             this._JwtAuthUtil = JwtAuthUtil;
-
         }
 
         /// <summary>
@@ -30,16 +30,16 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Message/GetContacts")]
         [ResponseType(typeof(List<ResponseContactDto>))]
-        public IActionResult GetContacts()
+        public async Task<IActionResult> GetContacts()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            var contacts = db.Messages
+            var contacts = await db.Messages
                 .Where(x => x.Receiver.Uid == uid || x.Sender.Uid == uid)
                 .Select(x => x.Receiver.Uid == uid ?
                 new ResponseContactDto { UID = x.Sender.Uid, Username = x.Sender.Username } :
                 new ResponseContactDto { UID = x.Receiver.Uid, Username = x.Receiver.Username })
                 .Distinct()
-                .ToList();
+                .ToListAsync();
             if (contacts.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(contacts);
@@ -52,11 +52,11 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Message/GetMessages")]
         [ResponseType(typeof(List<ResponseMessageDto>))]
-        public IActionResult GetMessages(int contactUID)
+        public async Task<IActionResult> GetMessages(int contactUID)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var messages = db.Messages
+            var messages = await db.Messages
                 .Where(x => (x.Receiver.Uid == uid && x.Sender.Uid == contactUID) || (x.Receiver.Uid == contactUID && x.Sender.Uid == uid))
                 .Select(x =>
                     new ResponseMessageDto
@@ -65,7 +65,7 @@ namespace OOTD_API.Controllers
                         Message = x.Message1,
                         CreatedAt = x.CreatedAt
                     }
-                ).ToList();
+                ).ToListAsync();
             if (messages.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(messages);
@@ -77,8 +77,7 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize]
         [Route("~/api/Message/SendMessage")]
-
-        public IActionResult SendMessage([FromBody] RequestSendMessageDto dto)
+        public async Task<IActionResult> SendMessage([FromBody] RequestSendMessageDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
@@ -91,7 +90,7 @@ namespace OOTD_API.Controllers
                 CreatedAt = DateTime.UtcNow
             };
             db.Messages.Add(message);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

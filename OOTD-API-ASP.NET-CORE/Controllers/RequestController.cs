@@ -24,7 +24,6 @@ namespace OOTD_API.Controllers
         {
             this.db = db;
             this._JwtAuthUtil = JwtAuthUtil;
-
         }
 
         /// <summary>
@@ -34,9 +33,9 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Admin")]
         [Route("~/api/Request/GetRequests")]
         [ResponseType(typeof(List<ResponseRequestDto>))]
-        public IActionResult GetRequests()
+        public async Task<IActionResult> GetRequests()
         {
-            var result = db.Requests.Select(
+            var result = await db.Requests.Select(
                 x => new ResponseRequestDto
                 {
                     ID = x.RequestId,
@@ -44,7 +43,7 @@ namespace OOTD_API.Controllers
                     CreatedAt = x.CreatedAt,
                     Message = x.Message,
                     Status = x.Status.Status1
-                }).ToList();
+                }).ToListAsync();
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(result);
@@ -57,10 +56,10 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Request/GetOwnRequests")]
         [ResponseType(typeof(List<ResponseOwnRequestDto>))]
-        public IActionResult GetOwnRequests()
+        public async Task<IActionResult> GetOwnRequests()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            var user = db.Users.Include(u => u.Requests).ThenInclude(r => r.Status).First(u => u.Uid == uid);
+            var user = await db.Users.Include(u => u.Requests).ThenInclude(r => r.Status).FirstAsync(u => u.Uid == uid);
             if (!user.Requests.Any())
                 return CatStatusCode.NotFound();
             var result = user.Requests.Select(x => new ResponseOwnRequestDto()
@@ -78,7 +77,7 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize]
         [Route("~/api/Request/SendRequest")]
-        public IActionResult SendRequest(string message)
+        public async Task<IActionResult> SendRequest(string message)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
@@ -92,7 +91,7 @@ namespace OOTD_API.Controllers
             };
 
             db.Requests.Add(request);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -102,15 +101,15 @@ namespace OOTD_API.Controllers
         [HttpPut]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Request/ModifyRequestStatus")]
-        public IActionResult ModifyRequestStatus(int requestID, Status status)
+        public async Task<IActionResult> ModifyRequestStatus(int requestID, Status status)
         {
-            if (!db.Requests.Any(x => x.RequestId == requestID))
+            if (!await db.Requests.AnyAsync(x => x.RequestId == requestID))
                 return CatStatusCode.BadRequest();
-            var request = db.Requests.Find(requestID);
+            var request = await db.Requests.FindAsync(requestID);
             request.StatusId = (int)status;
-            if (!db.Statuses.Any(s => s.StatusId == (int)status))
+            if (!await db.Statuses.AnyAsync(s => s.StatusId == (int)status))
                 return CatStatusCode.BadRequest();
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

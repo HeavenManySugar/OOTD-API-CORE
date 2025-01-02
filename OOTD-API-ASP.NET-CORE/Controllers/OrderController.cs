@@ -31,11 +31,11 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Order/GetUserOrders")]
         [ResponseType(typeof(List<ResponseOrderDto>))]
-        public IActionResult GetUserOrders()
+        public async Task<IActionResult> GetUserOrders()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var result = db.Orders
+            var result = await db.Orders
                 .Where(x => x.Uid == uid)
                 .Select(x =>
                 new ResponseOrderDto
@@ -56,7 +56,7 @@ namespace OOTD_API.Controllers
                     }).ToList()
                 })
                 .OrderByDescending(x => x.CreateAt)
-                .ToList();
+                .ToListAsync();
 
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
@@ -70,17 +70,17 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Order/GetUserOrderDetail")]
         [ResponseType(typeof(ResponseOrderDto))]
-        public IActionResult GetUserOrderDetail(int orderId)
+        public async Task<IActionResult> GetUserOrderDetail(int orderId)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var order = db.Orders
+            var order = await db.Orders
                 .Include(o => o.Status)
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Pvc)
                 .ThenInclude(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
-                .FirstOrDefault(x => x.Uid == uid && x.OrderId == orderId);
+                .FirstOrDefaultAsync(x => x.Uid == uid && x.OrderId == orderId);
 
             if (order == null)
                 return CatStatusCode.NotFound();
@@ -111,13 +111,13 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize]
         [Route("~/api/Order/MakeOrder")]
-        public IActionResult MakeOrder([FromBody] RequestOrderDto dto)
+        public async Task<IActionResult> MakeOrder([FromBody] RequestOrderDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);            // 檢查庫存
 
             foreach (var detail in dto.Details)
             {
-                var product = db.Products.FirstOrDefault(p => p.ProductId == detail.ProductID);
+                var product = await db.Products.FirstOrDefaultAsync(p => p.ProductId == detail.ProductID);
                 if (product == null)
                     return CatStatusCode.BadRequest();
 
@@ -129,7 +129,7 @@ namespace OOTD_API.Controllers
             // 優惠券使用
             if (dto.CouponID != null)
             {
-                var userCoupon = db.UserCoupons.Where(x => x.Uid == uid && x.CouponId == dto.CouponID).First();
+                var userCoupon = await db.UserCoupons.Where(x => x.Uid == uid && x.CouponId == dto.CouponID).FirstAsync();
                 userCoupon.Quantity -= 1;
             }
 
@@ -159,14 +159,14 @@ namespace OOTD_API.Controllers
                     .FirstOrDefault().Pvcid,
                     Quantity = detail.Quantity
                 };
-                var product = db.Products.FirstOrDefault(p => p.ProductId == detail.ProductID);
+                var product = await db.Products.FirstOrDefaultAsync(p => p.ProductId == detail.ProductID);
                 product.Quantity -= detail.Quantity;
                 orderDetails.Add(orderDetail);
             }
-            db.Orders.Add(order);
-            db.OrderDetails.AddRange(orderDetails);
+            await db.Orders.AddAsync(order);
+            await db.OrderDetails.AddRangeAsync(orderDetails);
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

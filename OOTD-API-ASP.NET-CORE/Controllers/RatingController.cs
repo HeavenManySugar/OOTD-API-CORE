@@ -32,9 +32,9 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Route("~/api/Rating/GetProductRating")]
         [ResponseType(typeof(List<ResponseRatingDto>))]
-        public IActionResult GetProductRating(int productId)
+        public async Task<IActionResult> GetProductRating(int productId)
         {
-            var result = db.Ratings
+            var result = await db.Ratings
                 .Include(r => r.UidNavigation)
                 .Include(r => r.Product)
                 .ThenInclude(p => p.ProductVersionControls)
@@ -49,7 +49,7 @@ namespace OOTD_API.Controllers
                     ProductName = x.Product.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault().Name,
                     ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url
                 })
-                .ToList();
+                .ToListAsync();
             //if (result.Count == 0)
             //    return CatStatusCode.NotFound();
             return Ok(result);
@@ -62,14 +62,14 @@ namespace OOTD_API.Controllers
         [Authorize]
         [Route("~/api/Rating/GetRemainingRatingTimes")]
         [ResponseType(typeof(ResponseRemainingRatingDto))]
-        public IActionResult GetRemainingRatingTimes(int productId)
+        public async Task<IActionResult> GetRemainingRatingTimes(int productId)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            var orderCount = db.OrderDetails
+            var orderCount = await db.OrderDetails
                 .Include(od => od.Order)
                 .Include(od => od.Pvc)
-                .Count(x => x.Order.Uid == uid && x.Pvc.ProductId == productId);
-            var ratingCount = db.Ratings.Count(x => x.Uid == uid && x.ProductId == productId);
+                .CountAsync(x => x.Order.Uid == uid && x.Pvc.ProductId == productId);
+            var ratingCount = await db.Ratings.CountAsync(x => x.Uid == uid && x.ProductId == productId);
             var remainingRatingTimes = Math.Max(0, orderCount - ratingCount);
             return Ok(
                 new ResponseRemainingRatingDto()
@@ -84,12 +84,12 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize]
         [Route("~/api/Rating/LeaveRating")]
-        public IActionResult LeaveRating([FromBody] RequestRatingDto dto)
+        public async Task<IActionResult> LeaveRating([FromBody] RequestRatingDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var orderCount = db.OrderDetails.Count(x => x.Order.Uid == uid && x.Pvc.ProductId == dto.ProductID);
-            var ratingCount = db.Ratings.Count(x => x.Uid == uid && x.ProductId == dto.ProductID);
+            var orderCount = await db.OrderDetails.CountAsync(x => x.Order.Uid == uid && x.Pvc.ProductId == dto.ProductID);
+            var ratingCount = await db.Ratings.CountAsync(x => x.Uid == uid && x.ProductId == dto.ProductID);
 
             if (ratingCount + 1 > orderCount)
                 return CatStatusCode.BadRequest();
@@ -104,7 +104,7 @@ namespace OOTD_API.Controllers
             };
 
             db.Ratings.Add(rating);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

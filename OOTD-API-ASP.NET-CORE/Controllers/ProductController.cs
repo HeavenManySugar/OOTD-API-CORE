@@ -37,7 +37,7 @@ namespace OOTD_API.Controllers
         };
 
 
-        private ResponseProductsDto GenerateProductPage(List<ProdcutWithSale> products, int page, int pageLimitNumber, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
+        private async Task<ResponseProductsDto> GenerateProductPageAsync(List<ProdcutWithSale> products, int page, int pageLimitNumber, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             var count = products.Count;
             var pageCount = count / pageLimitNumber + (count % pageLimitNumber == 0 ? 0 : 1);
@@ -63,17 +63,12 @@ namespace OOTD_API.Controllers
             };
         }
 
-        /// <summary>
-        /// 取得全站所有產品
-        /// </summary>
-        /// <returns></returns>
-
         [HttpGet]
         [Route("~/api/Product/GetAllProducts")]
         [ResponseType(typeof(ResponseProductsDto))]
-        public IActionResult GetAllProducts(int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
+        public async Task<IActionResult> GetAllProductsAsync(int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
-            var product = db.ProductVersionControls
+            var product = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.OrderDetails)
@@ -85,9 +80,9 @@ namespace OOTD_API.Controllers
                     Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
                     LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-                .ToList();
+                .ToListAsync();
 
-            var result = GenerateProductPage(product, page, pageLimitNumber, orderField, isASC);
+            var result = await GenerateProductPageAsync(product, page, pageLimitNumber, orderField, isASC);
 
             if (result.Products.Count == 0)
                 return CatStatusCode.NotFound();
@@ -95,15 +90,12 @@ namespace OOTD_API.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// 取得賣場內的產品
-        /// </summary>
         [HttpGet]
         [Route("~/api/Product/GetStoreProducts")]
         [ResponseType(typeof(ResponseProductsDto))]
-        public IActionResult GetStoreProducts(int storeId, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
+        public async Task<IActionResult> GetStoreProductsAsync(int storeId, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
-            var product = db.ProductVersionControls
+            var product = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.OrderDetails)
@@ -115,9 +107,9 @@ namespace OOTD_API.Controllers
                     Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
                     LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-                .ToList();
+                .ToListAsync();
 
-            var result = GenerateProductPage(product, page, pageLimitNumber, orderField, isASC);
+            var result = await GenerateProductPageAsync(product, page, pageLimitNumber, orderField, isASC);
 
             if (result.Products.Count == 0)
                 return CatStatusCode.NotFound();
@@ -125,28 +117,25 @@ namespace OOTD_API.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// 取得用戶購物車內的產品
-        /// </summary>
         [HttpGet]
         [Authorize]
         [Route("~/api/Product/GetCartProducts")]
         [ResponseType(typeof(List<ResponseCartProductDto>))]
-        public IActionResult GetCartProducts()
+        public async Task<IActionResult> GetCartProductsAsync()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var cart = db.CartProducts.Where(x => x.Uid == uid).ToList();
+            var cart = await db.CartProducts.Where(x => x.Uid == uid).ToListAsync();
             if (cart.Count == 0)
                 return CatStatusCode.NotFound();
 
-            var productVersionControls = db.ProductVersionControls
+            var productVersionControls = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Where(x => x.Product.Enabled)
                 .GroupBy(x => x.ProductId)
                 .Select(g => g.OrderByDescending(x => x.Version).FirstOrDefault())
-                .ToList();
+                .ToListAsync();
 
             var result = cart.Select(c =>
             {
@@ -172,18 +161,18 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Route("~/api/Product/SearchProducts")]
         [ResponseType(typeof(ResponseProductsDto))]
-        public IActionResult SearchProducts(string keyword, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
+        public async Task<IActionResult> SearchProductsAsync(string keyword, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
             keyword = keyword.ToLower();
 
-            var productVersionControls = db.ProductVersionControls
+            var productVersionControls = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.OrderDetails)
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductKeywords)
                 .Where(x => x.Product.Enabled)
-                .ToList(); // Switch to client-side evaluation
+                .ToListAsync(); // Switch to client-side evaluation
 
 
             var product = productVersionControls
@@ -197,7 +186,7 @@ namespace OOTD_API.Controllers
                 .Where(x => x.LastestPVC.Name.ToLower().Contains(keyword) || x.LastestPVC.Description.ToLower().Contains(keyword) || x.LastestPVC.Product.ProductKeywords.Any(y => y.Keyword.ToLower().Contains(keyword)))
                 .ToList();
 
-            var result = GenerateProductPage(product, page, pageLimitNumber, orderField, isASC);
+            var result = await GenerateProductPageAsync(product, page, pageLimitNumber, orderField, isASC);
 
             if (result.Products.Count == 0)
                 return CatStatusCode.NotFound();
@@ -211,9 +200,9 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Route("~/api/Product/GetTopProducts")]
         [ResponseType(typeof(ResponseProductsDto))]
-        public IActionResult GetTopProducts(int count = 5)
+        public async Task<IActionResult> GetTopProductsAsync(int count = 5)
         {
-            var product = db.ProductVersionControls
+            var product = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.OrderDetails)
@@ -223,19 +212,18 @@ namespace OOTD_API.Controllers
                     Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
                     LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
                 })
-            .ToList();
+                .ToListAsync();
 
-            var result = GenerateProductPage(product, 1, count, ProductOrderField.Sale, false);
+            var result = await GenerateProductPageAsync(product, 1, count, ProductOrderField.Sale, false);
             return Ok(result.Products);
         }
-
         /// <summary>
         /// 使用 Product id 取得單一產品
         /// </summary>
         [HttpGet]
         [Route("~/api/Product/GetProduct")]
         [ResponseType(typeof(ResponseProductWithSaleDto))]
-        public IActionResult GetProduct(int id)
+        public async Task<IActionResult> GetProductAsync(int id)
         {
             // 減掉用戶放進購物車的
             int minusCount = 0;
@@ -243,8 +231,8 @@ namespace OOTD_API.Controllers
             {
                 var userToken = _JwtAuthUtil.GetToken(Request.Headers.Authorization.ToString());
                 var uid = int.Parse(userToken[JwtRegisteredClaimNames.Sub].ToString());
-                var cartProduct = db.CartProducts
-                    .FirstOrDefault(x => x.Uid == uid && x.ProductId == id);
+                var cartProduct = await db.CartProducts
+                    .FirstOrDefaultAsync(x => x.Uid == uid && x.ProductId == id);
                 if (cartProduct != null)
                     minusCount = cartProduct.Quantity;
             }
@@ -252,16 +240,16 @@ namespace OOTD_API.Controllers
             var PVC = db.ProductVersionControls
                     .Where(x => x.Product.Enabled && x.ProductId == id);
 
-            if (PVC.Count() == 0)
+            if (!await PVC.AnyAsync())
                 return CatStatusCode.NotFound();
 
-            var lastestPCV = PVC
+            var lastestPCV = await PVC
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .OrderByDescending(x => x.Version)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
 
-            var sale = PVC.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0);
+            var sale = await PVC.SumAsync(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0);
 
             var response = new ResponseProductWithSaleDto
             {
@@ -277,21 +265,20 @@ namespace OOTD_API.Controllers
             return Ok(response);
         }
 
-
-        /// <summary>
-        /// 使用 Product version control id 取得某一版本產品
-        /// </summary>
+        /// <summary>  
+        /// 使用 Product version control id 取得某一版本產品  
+        /// </summary>  
         [HttpGet]
         [Route("~/api/Product/GetProdcutByPVCID")]
         [ResponseType(typeof(ResponseProductDto))]
-        public IActionResult GetProdcutByPVCID(int PVCID)
+        public async Task<IActionResult> GetProdcutByPVCIDAsync(int PVCID)
         {
-            var productVersionControl = db.ProductVersionControls
+            var productVersionControl = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Where(x => x.Product.Enabled)
                 .Where(x => x.Pvcid == PVCID)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
 
             if (productVersionControl == null)
                 return CatStatusCode.NotFound();
@@ -353,46 +340,46 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Seller")]
         [Route("~/api/Product/CreateProduct")]
         [ResponseType(typeof(ResponseCreateProductDto))]
-        public IActionResult CreateProduct(RequestCreateProductDto dto)
+        public async Task<IActionResult> CreateProductAsync(RequestCreateProductDto dto)
         {
             if (dto.Price < 0 || dto.Quantity < 0)
                 return CatStatusCode.BadRequest();
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            int storeID = db.Stores.FirstOrDefault(x => x.OwnerId == uid).StoreId;
+            int storeID = await db.Stores.Where(x => x.OwnerId == uid).Select(x => x.StoreId).FirstOrDefaultAsync();
             var product = new Product()
             {
-                ProductId = db.Products.Any() ? db.Products.Max(x => x.ProductId) + 1 : 1,
+                ProductId = await db.Products.AnyAsync() ? await db.Products.MaxAsync(x => x.ProductId) + 1 : 1,
                 StoreId = storeID,
                 CreatedAt = DateTime.UtcNow,
                 Enabled = true,
                 Quantity = dto.Quantity
             };
             // product
-            db.Products.Add(product);
+            await db.Products.AddAsync(product);
             // PVC
             var pvc = new ProductVersionControl()
             {
-                Pvcid = db.ProductVersionControls.Any() ? db.ProductVersionControls.Max(x => x.Pvcid) + 1 : 1,
+                Pvcid = await db.ProductVersionControls.AnyAsync() ? await db.ProductVersionControls.MaxAsync(x => x.Pvcid) + 1 : 1,
                 ProductId = product.ProductId,
                 Name = dto.Name,
                 Description = dto.Description,
                 Price = dto.Price,
                 Version = 1
             };
-            db.ProductVersionControls.Add(pvc);
+            await db.ProductVersionControls.AddAsync(pvc);
 
-            int keywordIndex = db.ProductKeywords.Any() ? db.ProductKeywords.Max(y => y.ProduckKeywordId) + 1 : 1;
+            int keywordIndex = await db.ProductKeywords.AnyAsync() ? await db.ProductKeywords.MaxAsync(y => y.ProduckKeywordId) + 1 : 1;
             // keywords
-            dto.Keywords.ForEach(x =>
+            dto.Keywords.ForEach(async x =>
             {
-                db.ProductKeywords.Add(new ProductKeyword()
+                await db.ProductKeywords.AddAsync(new ProductKeyword()
                 {
                     ProduckKeywordId = keywordIndex++,
                     ProductId = product.ProductId,
                     Keyword = x
                 });
             });
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return Ok(new ResponseCreateProductDto()
             {
                 ProductID = product.ProductId
@@ -427,19 +414,19 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize]
         [Route("~/api/Product/AddToCart")]
-        public IActionResult AddToCart([FromBody] RequestAddToCartDto dto)
+        public async Task<IActionResult> AddToCart([FromBody] RequestAddToCartDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             // 沒有這個商品
-            if (!db.Products.Any(x => x.ProductId == dto.ProductID))
+            if (!await db.Products.AnyAsync(x => x.ProductId == dto.ProductID))
                 return CatStatusCode.BadRequest();
 
             // 已經存在的產品
-            var cart = db.CartProducts
+            var cart = await db.CartProducts
                 .Include(c => c.Product)
                 .Where(x => x.Uid == uid && x.ProductId == dto.ProductID)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
             if (cart != null)
             {
                 cart.Quantity += dto.Quantity;
@@ -448,22 +435,22 @@ namespace OOTD_API.Controllers
             }
             else
             {
-                var product = db.Products.Where(x => x.ProductId == dto.ProductID).FirstOrDefault();
+                var product = await db.Products.Where(x => x.ProductId == dto.ProductID).FirstOrDefaultAsync();
                 if (dto.Quantity > product.Quantity)
                     return CatStatusCode.BadRequest();
 
                 // 新加入的產品
                 var cartProduct = new CartProduct()
                 {
-                    CartId = db.Messages.Any() ? db.CartProducts.Max(x => x.CartId) + 1 : 1,
+                    CartId = await db.Messages.AnyAsync() ? await db.CartProducts.MaxAsync(x => x.CartId) + 1 : 1,
                     Uid = uid,
                     ProductId = dto.ProductID,
                     Quantity = dto.Quantity
                 };
-                db.CartProducts.Add(cartProduct);
+                await db.CartProducts.AddAsync(cartProduct);
             }
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -473,17 +460,17 @@ namespace OOTD_API.Controllers
         [HttpPut]
         [Authorize]
         [Route("~/api/Product/ModifyProductQuantityInCart")]
-        public IActionResult ModifyProductQuantityInCart([FromBody] RequestModifyCartProductQuantityDto dto)
+        public async Task<IActionResult> ModifyProductQuantityInCart([FromBody] RequestModifyCartProductQuantityDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             // 沒有這個商品
-            if (!db.Products.Any(x => x.ProductId == dto.ProductID))
+            if (!await db.Products.AnyAsync(x => x.ProductId == dto.ProductID))
                 return CatStatusCode.BadRequest();
 
-            var cartProduct = db.CartProducts
+            var cartProduct = await db.CartProducts
                 .Include(cp => cp.Product)
-                .FirstOrDefault(x => x.Uid == uid && x.ProductId == dto.ProductID);
+                .FirstOrDefaultAsync(x => x.Uid == uid && x.ProductId == dto.ProductID);
             if (cartProduct == null)
                 return CatStatusCode.BadRequest();
 
@@ -494,23 +481,23 @@ namespace OOTD_API.Controllers
             if (cartProduct.Quantity > cartProduct.Product.Quantity)
                 return CatStatusCode.BadRequest();
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
-                /// <summary>
+        /// <summary>
         /// 賣家修改產品資訊
         /// </summary>
         [HttpPut]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Product/ModifyProduct")]
-        public IActionResult ModifyProduct(RequestModifyProductDto dto)
+        public async Task<IActionResult> ModifyProduct(RequestModifyProductDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
             // 沒有這個商品
-            if (!db.Products.Any(x => x.ProductId == dto.ProductID))
+            if (!await db.Products.AnyAsync(x => x.ProductId == dto.ProductID))
                 return CatStatusCode.BadRequest();
-            var product = db.Products.Include(p => p.Store).FirstOrDefault(p => p.ProductId == dto.ProductID);
+            var product = await db.Products.Include(p => p.Store).FirstOrDefaultAsync(p => p.ProductId == dto.ProductID);
             // 商品不屬於這個賣家
             if (product.Store.OwnerId != uid)
                 return CatStatusCode.BadRequest();
@@ -521,16 +508,16 @@ namespace OOTD_API.Controllers
             {
                 var pvc = new ProductVersionControl()
                 {
-                    Pvcid = db.ProductVersionControls.Any() ? db.ProductVersionControls.Max(x => x.Pvcid) + 1 : 1,
+                    Pvcid = await db.ProductVersionControls.AnyAsync() ? await db.ProductVersionControls.MaxAsync(x => x.Pvcid) + 1 : 1,
                     ProductId = product.ProductId,
                     Name = dto.Name,
                     Description = dto.Description,
                     Price = dto.Price,
                     Version = latestPVC == null ? 1 : latestPVC.Version + 1
                 };
-                db.ProductVersionControls.Add(pvc);
+                await db.ProductVersionControls.AddAsync(pvc);
             }
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -540,15 +527,14 @@ namespace OOTD_API.Controllers
         [HttpDelete]
         [Authorize]
         [Route("~/api/Product/RemoveProductFromCart")]
-        public IActionResult RemoveProductFromCart([FromBody] RequestRemoveProductFromCart dto)
+        public async Task<IActionResult> RemoveProductFromCart([FromBody] RequestRemoveProductFromCart dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-
 
             // 檢查是否有這些商品
             foreach (int id in dto.IDs)
             {
-                var cartProduct = db.CartProducts.FirstOrDefault(x => x.Uid == uid && x.ProductId == id);
+                var cartProduct = await db.CartProducts.FirstOrDefaultAsync(x => x.Uid == uid && x.ProductId == id);
                 if (cartProduct == null)
                     return CatStatusCode.BadRequest();
             }
@@ -556,35 +542,34 @@ namespace OOTD_API.Controllers
             // 移除購物商品
             foreach (int id in dto.IDs)
             {
-                var cartProduct = db.CartProducts.FirstOrDefault(x => x.Uid == uid && x.ProductId == id);
+                var cartProduct = await db.CartProducts.FirstOrDefaultAsync(x => x.Uid == uid && x.ProductId == id);
                 db.CartProducts.Remove(cartProduct);
             }
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
 
             return CatStatusCode.Ok();
         }
-
         /// <summary>
         /// 賣家移除商品照片
         /// </summary>
         [HttpDelete]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Product/RemoveProductImages")]
-        public IActionResult RemoveProductImages(RequestRemoveProductImagesDto dto)
+        public async Task<IActionResult> RemoveProductImagesAsync(RequestRemoveProductImagesDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
             // 產品不是該賣家的
-            if (!db.Products.Any(x => x.ProductId == dto.ProductID && x.Store.OwnerId == uid))
+            if (!await db.Products.AnyAsync(x => x.ProductId == dto.ProductID && x.Store.OwnerId == uid))
                 return CatStatusCode.BadRequest();
             foreach (string url in dto.Urls)
             {
-                var image = db.ProductImages.FirstOrDefault(x => x.ProductId == dto.ProductID && x.Url == url);
+                var image = await db.ProductImages.FirstOrDefaultAsync(x => x.ProductId == dto.ProductID && x.Url == url);
                 if (image == null)
                     return CatStatusCode.BadRequest();
                 db.ProductImages.Remove(image);
             }
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

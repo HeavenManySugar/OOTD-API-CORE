@@ -34,9 +34,9 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Route("~/api/Store/SearchStores")]
         [ResponseType(typeof(List<ResponseStoresDto>))]
-        public IActionResult SearchStores(string keyword, int page = 1, int pageLimitNumber = 3)
+        public async Task<IActionResult> SearchStores(string keyword, int page = 1, int pageLimitNumber = 3)
         {
-            var allFilterStores = db.Stores
+            var allFilterStores = await db.Stores
                 .Include(s => s.Owner)
                 .Where(x => x.Enabled)
                 .Where(x => x.Name.Contains(keyword) || x.Description.Contains(keyword))
@@ -47,7 +47,7 @@ namespace OOTD_API.Controllers
                     OwnerUsername = x.Owner.Username,
                     Name = x.Name,
                     Description = x.Description
-                }).ToList();
+                }).ToListAsync();
 
             var count = allFilterStores.Count();
             var pageCount = count / pageLimitNumber + (count % pageLimitNumber == 0 ? 0 : 1);
@@ -74,11 +74,11 @@ namespace OOTD_API.Controllers
         [HttpGet]
         [Route("~/api/Store/GetStoreById")]
         [ResponseType(typeof(ResponseStoreDto))]
-        public IActionResult GetStoreById(int storeID)
+        public async Task<IActionResult> GetStoreById(int storeID)
         {
-            var store = db.Stores
+            var store = await db.Stores
                 .Include(s => s.Owner)
-                .FirstOrDefault(x => x.Enabled && x.StoreId == storeID);
+                .FirstOrDefaultAsync(x => x.Enabled && x.StoreId == storeID);
             if (store == null)
                 return CatStatusCode.NotFound();
 
@@ -100,13 +100,13 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStore")]
         [ResponseType(typeof(ResponseStoreDto))]
-        public IActionResult GetStore()
+        public async Task<IActionResult> GetStore()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var store = db.Stores
+            var store = await db.Stores
                 .Include(s => s.Owner)
-                .FirstOrDefault(x => x.Enabled && x.OwnerId == uid);
+                .FirstOrDefaultAsync(x => x.Enabled && x.OwnerId == uid);
 
             if (store == null)
             {
@@ -136,14 +136,14 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreOrders")]
         [ResponseType(typeof(List<ResponseStoreOrderDto>))]
-        public IActionResult GetStoreOrders()
+        public async Task<IActionResult> GetStoreOrders()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var store = db.Stores
-                .First(x => x.OwnerId == uid);
+            var store = await db.Stores
+                .FirstAsync(x => x.OwnerId == uid);
 
-            var orderDetails = db.OrderDetails
+            var orderDetails = await db.OrderDetails
                 .Include(od => od.Pvc)
                 .ThenInclude(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
@@ -152,7 +152,9 @@ namespace OOTD_API.Controllers
                 .Include(od => od.Order.Coupon)
                 .Include(od => od.Order.UidNavigation)
                 .Where(x => x.Pvc.Product.StoreId == store.StoreId)
-                .ToList() // 先執行查詢
+                .ToListAsync(); // 先執行查詢
+
+            var groupedOrderDetails = orderDetails
                 .GroupBy(x => new { x.Order.OrderId, x.Order.CreatedAt, x.Order.Status.Status1, CouponDiscount = x.Order.Coupon == null ? 1 : x.Order.Coupon.Discount, x.Order.UidNavigation })
                 .Select(g => new ResponseStoreOrderDto()
                 {
@@ -173,9 +175,9 @@ namespace OOTD_API.Controllers
                     }).ToList()
                 }).ToList();
 
-            if (orderDetails.Count == 0)
+            if (groupedOrderDetails.Count == 0)
                 return CatStatusCode.NotFound();
-            return Ok(orderDetails);
+            return Ok(groupedOrderDetails);
         }
 
         /// <summary>
@@ -185,20 +187,19 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreProductAndSale")]
         [ResponseType(typeof(List<ResponseStoreProductWithSaleDto>))]
-        public IActionResult GetStoreProductAndSale()
+        public async Task<IActionResult> GetStoreProductAndSale()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-
-            var store = db.Stores
+            var store = await db.Stores
                 .Include(s => s.Owner)
-                .FirstOrDefault(x => x.Enabled && x.OwnerId == uid);
+                .FirstOrDefaultAsync(x => x.Enabled && x.OwnerId == uid);
 
-            var productGroups = db.ProductVersionControls
-            .Include(s => s.Product)
-            .Where(x => x.Product.StoreId == store.StoreId && x.Product.Enabled)
-            .GroupBy(x => x.ProductId)
-            .ToList(); // Execute the query up to this point
+            var productGroups = await db.ProductVersionControls
+                .Include(s => s.Product)
+                .Where(x => x.Product.StoreId == store.StoreId && x.Product.Enabled)
+                .GroupBy(x => x.ProductId)
+                .ToListAsync(); // Execute the query up to this point
 
             var products = productGroups
                 .Select(x => new ProdcutWithSale()
@@ -219,7 +220,6 @@ namespace OOTD_API.Controllers
                     Images = x.LastestPVC.Product.ProductImages.Select(img => img.Url).ToList()
                 }).ToList();
 
-
             return Ok(products);
         }
 
@@ -230,14 +230,14 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/GetStoreRatings")]
         [ResponseType(typeof(List<ResponseRatingDto>))]
-        public IActionResult GetStoreRatings()
+        public async Task<IActionResult> GetStoreRatings()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var store = db.Stores
-                .First(x => x.Enabled && x.OwnerId == uid);
+            var store = await db.Stores
+                .FirstAsync(x => x.Enabled && x.OwnerId == uid);
 
-            var result = db.Ratings
+            var result = await db.Ratings
                 .Include(r => r.Product)
                 .ThenInclude(p => p.ProductVersionControls)
                 .Include(r => r.Product.ProductImages)
@@ -250,7 +250,7 @@ namespace OOTD_API.Controllers
                     ProductID = x.ProductId,
                     ProductName = x.Product.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault().Name,
                     ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url
-                }).ToList();
+                }).ToListAsync();
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(result);
@@ -263,10 +263,10 @@ namespace OOTD_API.Controllers
         [Authorize(Roles = "Admin")]
         [Route("~/api/Store/GetStores")]
         [ResponseType(typeof(ResponseStoresForAdminDto))]
-        public IActionResult GetStores(int page = 1, int pageLimitNumber = 50, bool isASC = true)
+        public async Task<IActionResult> GetStores(int page = 1, int pageLimitNumber = 50, bool isASC = true)
         {
             var temp = isASC ? db.Stores.OrderBy(x => x.StoreId) : db.Stores.OrderByDescending(x => x.StoreId);
-            var result = temp
+            var result = await temp
                .Include(s => s.Owner)
                .Skip((page - 1) * pageLimitNumber)
                .Take(pageLimitNumber)
@@ -278,10 +278,10 @@ namespace OOTD_API.Controllers
                    Name = x.Name,
                    Description = x.Description,
                    Enabled = x.Enabled
-               }).ToList();
+               }).ToListAsync();
             if (result.Count == 0)
                 return CatStatusCode.NotFound();
-            int count = db.Stores.Count();
+            int count = await db.Stores.CountAsync();
             if (count % pageLimitNumber == 0)
                 count = count / pageLimitNumber;
             else
@@ -299,24 +299,24 @@ namespace OOTD_API.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Store/CreateStore")]
-        public IActionResult CreateStore(RequestCreateStoreDto dto)
+        public async Task<IActionResult> CreateStore(RequestCreateStoreDto dto)
         {
             // 沒有這個用戶
-            if (!db.Users.Any(x => x.Uid == dto.OwnerID))
+            if (!await db.Users.AnyAsync(x => x.Uid == dto.OwnerID))
                 return CatStatusCode.BadRequest();
             // 這個用戶已經有商店
-            if (db.Stores.Any(x => x.OwnerId == dto.OwnerID))
+            if (await db.Stores.AnyAsync(x => x.OwnerId == dto.OwnerID))
                 return CatStatusCode.BadRequest();
             var store = new Store()
             {
-                StoreId = db.Stores.Any() ? db.Stores.Max(x => x.StoreId) + 1 : 1,
+                StoreId = await db.Stores.AnyAsync() ? await db.Stores.MaxAsync(x => x.StoreId) + 1 : 1,
                 OwnerId = dto.OwnerID,
                 Name = dto.Name,
                 Description = dto.Description,
                 Enabled = true
             };
             db.Stores.Add(store);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
         /// <summary>
@@ -325,14 +325,14 @@ namespace OOTD_API.Controllers
         [HttpPut]
         [Authorize(Roles = "Seller")]
         [Route("~/api/Store/ModifyStore")]
-        public IActionResult ModifyStore(RequestModifyStoreDto dto)
+        public async Task<IActionResult> ModifyStore(RequestModifyStoreDto dto)
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            var store = db.Stores
-                .First(x => x.OwnerId == uid);
+            var store = await db.Stores
+                .FirstAsync(x => x.OwnerId == uid);
             store.Name = dto.Name;
             store.Description = dto.Description;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 
@@ -342,13 +342,13 @@ namespace OOTD_API.Controllers
         [HttpPut]
         [Authorize(Roles = "Admin")]
         [Route("~/api/Store/ModifyStoreEnabled")]
-        public IActionResult ModifyStoreEnabled(RequestModifyStoreEnabledDto dto)
+        public async Task<IActionResult> ModifyStoreEnabled(RequestModifyStoreEnabledDto dto)
         {
-            if (!db.Stores.Any(x => x.StoreId == dto.StoreID))
+            if (!await db.Stores.AnyAsync(x => x.StoreId == dto.StoreID))
                 return CatStatusCode.BadRequest();
-            var store = db.Stores.Find(dto.StoreID);
+            var store = await db.Stores.FindAsync(dto.StoreID);
             store.Enabled = dto.Enabled;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return CatStatusCode.Ok();
         }
 

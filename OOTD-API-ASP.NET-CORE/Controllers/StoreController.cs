@@ -197,6 +197,7 @@ namespace OOTD_API.Controllers
 
             var productGroups = await db.ProductVersionControls
                 .Include(s => s.Product)
+                .Include(s => s.Product.ProductImages)
                 .Where(x => x.Product.StoreId == store.StoreId && x.Product.Enabled)
                 .GroupBy(x => x.ProductId)
                 .ToListAsync(); // Execute the query up to this point

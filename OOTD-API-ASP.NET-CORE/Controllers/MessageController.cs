@@ -32,14 +32,27 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(List<ResponseContactDto>))]
         public async Task<IActionResult> GetContacts()
         {
-            var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            var contacts = await db.Messages
+            var uidClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (uidClaim == null)
+            {
+                return CatStatusCode.BadRequest();
+            }
+
+            var uid = int.Parse(uidClaim);
+            var messages = await db.Messages
+                .Include(m => m.Receiver)
+                .Include(m => m.Sender)
                 .Where(x => x.Receiver.Uid == uid || x.Sender.Uid == uid)
-                .Select(x => x.Receiver.Uid == uid ?
-                new ResponseContactDto { UID = x.Sender.Uid, Username = x.Sender.Username } :
-                new ResponseContactDto { UID = x.Receiver.Uid, Username = x.Receiver.Username })
-                .Distinct()
                 .ToListAsync();
+
+            var contacts = messages
+                .GroupBy(x => x.Receiver.Uid == uid ? x.Sender.Uid : x.Receiver.Uid)
+                .Select(g => g.First())
+                .Select(x => x.Receiver.Uid == uid ?
+                    new ResponseContactDto { UID = x.Sender.Uid, Username = x.Sender.Username } :
+                    new ResponseContactDto { UID = x.Receiver.Uid, Username = x.Receiver.Username })
+                .ToList();
+
             if (contacts.Count == 0)
                 return CatStatusCode.NotFound();
             return Ok(contacts);

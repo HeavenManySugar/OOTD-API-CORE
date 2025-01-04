@@ -181,6 +181,7 @@ namespace OOTD_API.Controllers
                 return CatStatusCode.NotFound();
 
             coupon.Name = dto.Name;
+            coupon.Discount = dto.Discount;
             coupon.Description = dto.Description;
             coupon.StartDate = dto.StartDate.UtcDateTime;
             coupon.ExpireDate = dto.ExpireDate.UtcDateTime;

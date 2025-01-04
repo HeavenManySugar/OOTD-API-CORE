@@ -64,10 +64,32 @@ namespace OOTD_API.Security
 
             var creds = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha512);
 
+            var id = int.Parse(claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value);
+
+            var user = db.Users.Find(id);
+            var storeExists = db.Stores.Any(x => x.Enabled && x.OwnerId == id);
+
+            var new_claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            if (user.IsAdministrator)
+            {
+                new_claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+            }
+
+            if (storeExists)
+            {
+                new_claims.Add(new Claim(ClaimTypes.Role, "Seller"));
+            }
+
+
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
-                claims: claims,
+                claims: new_claims,
                 expires: DateTime.UtcNow.AddMinutes(int.Parse(jwtSettings["TokenExpiryMinutes"])),
                 signingCredentials: creds
             );

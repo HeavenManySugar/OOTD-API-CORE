@@ -81,10 +81,13 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            if (uid == dto.ReceiverID)
-            {
+            bool sendMessageToSelf = dto.ReceiverID == uid;
+            if (sendMessageToSelf)
                 return CatStatusCode.BadRequest();
-            }
+
+            bool receiverNotExists = !db.Users.Any(x => x.Uid == dto.ReceiverID);
+            if (receiverNotExists)
+                return CatStatusCode.BadRequest();
 
             var message = new Message()
             {

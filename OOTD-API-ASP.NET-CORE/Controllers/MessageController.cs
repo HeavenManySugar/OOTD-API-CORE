@@ -81,6 +81,11 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
+            if (uid == dto.ReceiverID)
+            {
+                return CatStatusCode.BadRequest();
+            }
+
             var message = new Message()
             {
                 MessageId = db.Messages.Any() ? db.Messages.Max(x => x.MessageId) + 1 : 1,

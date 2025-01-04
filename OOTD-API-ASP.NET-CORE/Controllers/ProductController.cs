@@ -72,7 +72,8 @@ namespace OOTD_API.Controllers
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.OrderDetails)
-                .Where(x => x.Product.Enabled)
+                .Include(pvc => pvc.Product.Store)
+                .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
                 .GroupBy(x => x.ProductId)
                 .Select(x =>
                 new ProdcutWithSale()
@@ -99,7 +100,8 @@ namespace OOTD_API.Controllers
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.OrderDetails)
-                .Where(x => x.Product.Enabled && x.Product.StoreId == storeId)
+                .Include(pvc => pvc.Product.Store)
+                .Where(x => x.Product.Enabled && x.Product.Store.Enabled && x.Product.StoreId == storeId)
                 .GroupBy(x => x.ProductId)
                 .Select(x =>
                 new ProdcutWithSale()
@@ -132,7 +134,8 @@ namespace OOTD_API.Controllers
             var productVersionControls = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
-                .Where(x => x.Product.Enabled)
+                .Include(pvc => pvc.Product.Store)
+                .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
                 .GroupBy(x => x.ProductId)
                 .Select(g => g.OrderByDescending(x => x.Version).FirstOrDefault())
                 .ToListAsync();
@@ -171,7 +174,8 @@ namespace OOTD_API.Controllers
                 .Include(pvc => pvc.OrderDetails)
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductKeywords)
-                .Where(x => x.Product.Enabled)
+                .Include(pvc => pvc.Product.Store)
+                .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
                 .ToListAsync(); // Switch to client-side evaluation
 
 
@@ -238,7 +242,9 @@ namespace OOTD_API.Controllers
             }
 
             var PVC = db.ProductVersionControls
-                    .Where(x => x.Product.Enabled && x.ProductId == id);
+                    .Include(pvc => pvc.Product)
+                    .ThenInclude(p => p.ProductImages)
+                    .Where(x => x.Product.Enabled && x.Product.Enabled && x.ProductId == id);
 
             if (!await PVC.AnyAsync())
                 return CatStatusCode.NotFound();
@@ -276,7 +282,8 @@ namespace OOTD_API.Controllers
             var productVersionControl = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
-                .Where(x => x.Product.Enabled)
+                .Include(pvc => pvc.Product.Store)
+                .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
                 .Where(x => x.Pvcid == PVCID)
                 .FirstOrDefaultAsync();
 

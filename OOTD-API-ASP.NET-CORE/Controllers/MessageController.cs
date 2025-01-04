@@ -74,7 +74,7 @@ namespace OOTD_API.Controllers
                 .Select(x =>
                     new ResponseMessageDto
                     {
-                        IsSender = x.Receiver.Uid == uid,
+                        IsSender = x.Sender.Uid == uid,
                         Message = x.Message1,
                         CreatedAt = x.CreatedAt
                     }

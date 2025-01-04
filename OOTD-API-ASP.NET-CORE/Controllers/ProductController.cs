@@ -504,13 +504,16 @@ namespace OOTD_API.Controllers
             // 沒有這個商品
             if (!await db.Products.AnyAsync(x => x.ProductId == dto.ProductID))
                 return CatStatusCode.BadRequest();
-            var product = await db.Products.Include(p => p.Store).FirstOrDefaultAsync(p => p.ProductId == dto.ProductID);
+            var product = await db.Products
+                            .Include(p => p.Store)
+                            .Include(p => p.ProductVersionControls)
+                            .FirstOrDefaultAsync(p => p.ProductId == dto.ProductID);
             // 商品不屬於這個賣家
             if (product.Store.OwnerId != uid)
                 return CatStatusCode.BadRequest();
             product.Quantity = dto.Quantity;
             product.Enabled = dto.Enabled;
-            var latestPVC = product.ProductVersionControls?.OrderByDescending(x => x.Version).FirstOrDefault();
+            var latestPVC = product.ProductVersionControls.OrderByDescending(x => x.Version).FirstOrDefault();
             if (latestPVC == null || (latestPVC.Name != dto.Name || latestPVC.Description != dto.Description || latestPVC.Price != dto.Price))
             {
                 var pvc = new ProductVersionControl()

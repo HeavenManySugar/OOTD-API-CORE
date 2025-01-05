@@ -20,8 +20,8 @@ builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogL
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(5000); // HTTP 端口
-    options.ListenAnyIP(8080, listenOptions =>
+    options.ListenAnyIP(8080); // HTTP 端口
+    options.ListenAnyIP(443, listenOptions =>
     {
         listenOptions.UseHttps(); // HTTPS 端口
     });

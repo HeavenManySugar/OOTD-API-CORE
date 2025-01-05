@@ -1,5 +1,5 @@
 # Use the official .NET 8 SDK image as the build environment
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20 AS build-env
 
 WORKDIR /app
 

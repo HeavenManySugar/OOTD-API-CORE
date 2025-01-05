@@ -75,7 +75,7 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(TokenDto))]
         public async Task<IActionResult> GetRefreshedJWT()
         {
-            string token = await Task.Run(() => _JwtAuthUtil.ExpRefreshToken(User.Claims.ToArray()));
+            string token = await _JwtAuthUtil.ExpRefreshToken(User.Claims.ToArray());
             return Ok(new TokenDto()
             {
                 Token = token,
@@ -133,7 +133,7 @@ namespace OOTD_API.Controllers
                 return CatStatusCode.Unauthorized(); // 登入失敗
             if (!user.Enabled)
                 return CatStatusCode.Forbidden();// user 被停用
-            string token = _JwtAuthUtil.GenerateToken(user.Uid);
+            string token = await _JwtAuthUtil.GenerateToken(user.Uid);
             return Ok(new TokenDto()
             {
                 Token = token,

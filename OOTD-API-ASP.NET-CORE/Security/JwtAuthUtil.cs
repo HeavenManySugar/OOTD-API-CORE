@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using OOTDV1Entities = OOTD_API.Models.Ootdv1Context;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace OOTD_API.Security
@@ -20,10 +21,10 @@ namespace OOTD_API.Security
         /// <summary>
         /// 生成 JwtToken
         /// </summary>
-        public string GenerateToken(int id)
+        public async Task<string> GenerateToken(int id)
         {
-            var user = db.Users.Find(id);
-            var storeExists = db.Stores.Any(x => x.Enabled && x.OwnerId == id);
+            var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Uid == id);
+            var storeExists = await db.Stores.AsNoTracking().AnyAsync(x => x.Enabled && x.OwnerId == id);
 
             var claims = new List<Claim>
             {
@@ -57,7 +58,7 @@ namespace OOTD_API.Security
         /// <summary>
         /// 生成只刷新效期的 JwtToken
         /// </summary>
-        public string ExpRefreshToken(Claim[] claims)
+        public async Task<string> ExpRefreshToken(Claim[] claims)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
             var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
@@ -66,8 +67,8 @@ namespace OOTD_API.Security
 
             var id = int.Parse(claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value);
 
-            var user = db.Users.Find(id);
-            var storeExists = db.Stores.Any(x => x.Enabled && x.OwnerId == id);
+            var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Uid == id);
+            var storeExists = await db.Stores.AsNoTracking().AnyAsync(x => x.Enabled && x.OwnerId == id);
 
             var new_claims = new List<Claim>
             {

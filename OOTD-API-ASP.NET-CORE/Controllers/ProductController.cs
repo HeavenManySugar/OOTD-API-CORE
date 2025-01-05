@@ -69,21 +69,6 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(ResponseProductsDto))]
         public async Task<IActionResult> GetAllProductsAsync(int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
-            //var product = await db.ProductVersionControls
-            //    .Include(pvc => pvc.Product)
-            //    .ThenInclude(p => p.ProductImages)
-            //    .Include(pvc => pvc.OrderDetails)
-            //    .Include(pvc => pvc.Product.Store)
-            //    .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
-            //    .GroupBy(x => x.ProductId)
-            //    .Select(x =>
-            //    new ProdcutWithSale()
-            //    {
-            //        Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-            //        LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-            //    })
-            //    .ToListAsync();
-
             var product = await db.Products
                 .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.Product)
@@ -113,21 +98,6 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(ResponseProductsDto))]
         public async Task<IActionResult> GetStoreProductsAsync(int storeId, int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
-            //var product = await db.ProductVersionControls
-            //    .Include(pvc => pvc.Product)
-            //    .ThenInclude(p => p.ProductImages)
-            //    .Include(pvc => pvc.OrderDetails)
-            //    .Include(pvc => pvc.Product.Store)
-            //    .Where(x => x.Product.Enabled && x.Product.Store.Enabled && x.Product.StoreId == storeId)
-            //    .GroupBy(x => x.ProductId)
-            //    .Select(x =>
-            //    new ProdcutWithSale()
-            //    {
-            //        Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-            //        LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-            //    })
-            //    .ToListAsync();
-
             var product = await db.Products
                 .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.Product)
@@ -208,28 +178,6 @@ namespace OOTD_API.Controllers
         {
             keyword = keyword.ToLower();
 
-            //var productVersionControls = await db.ProductVersionControls
-            //    .Include(pvc => pvc.Product)
-            //    .ThenInclude(p => p.ProductImages)
-            //    .Include(pvc => pvc.OrderDetails)
-            //    .Include(pvc => pvc.Product)
-            //    .ThenInclude(p => p.ProductKeywords)
-            //    .Include(pvc => pvc.Product.Store)
-            //    .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
-            //    .ToListAsync(); // Switch to client-side evaluation
-
-
-            //var product = productVersionControls
-            //    .GroupBy(x => x.ProductId)
-            //    .Select(x =>
-            //    new ProdcutWithSale()
-            //    {
-            //        Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-            //        LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-            //    })
-            //    .Where(x => x.LastestPVC.Name.ToLower().Contains(keyword) || x.LastestPVC.Description.ToLower().Contains(keyword) || x.LastestPVC.Product.ProductKeywords.Any(y => y.Keyword.ToLower().Contains(keyword)))
-            //    .ToList();
-
             var product = await db.Products
               .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.Product)
@@ -266,18 +214,6 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(ResponseProductsDto))]
         public async Task<IActionResult> GetTopProductsAsync(int count = 5)
         {
-            //var product = await db.ProductVersionControls
-            //    .Include(pvc => pvc.Product)
-            //    .ThenInclude(p => p.ProductImages)
-            //    .Include(pvc => pvc.OrderDetails)
-            //    .GroupBy(x => x.ProductId)
-            //    .Select(x => new ProdcutWithSale()
-            //    {
-            //        Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-            //        LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-            //    })
-            //    .ToListAsync();
-
             var product = await db.Products
               .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.Product)
@@ -318,11 +254,6 @@ namespace OOTD_API.Controllers
                 if (cartProduct != null)
                     quantityInCart = cartProduct.Quantity;
             }
-
-            //var PVC = db.ProductVersionControls
-            //        .Include(pvc => pvc.Product)
-            //        .ThenInclude(p => p.ProductImages)
-            //        .Where(x => x.Product.Enabled && x.Product.Enabled && x.ProductId == id);
 
             var product = await db.Products
                 .Include(p => p.ProductImages)

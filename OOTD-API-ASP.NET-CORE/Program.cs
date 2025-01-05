@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-
-
-//using NSwagSample.Models;
-// <snippet_Services>
 using NSwag;
 using NSwag.Generation.Processors.Security;
 using OOTD_API.Models;
@@ -16,6 +12,11 @@ using System.Text;
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 配置日誌層級
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning); // 設定為 Warning 或更高層級
 
 // 配置 JWT 驗證
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -74,16 +75,13 @@ builder.Services.AddOpenApiDocument(doc =>
         };
     };
 });
-// </snippet_Services>
-
-//builder.Services.AddDbContext<TodoContext>(options =>
-//    options.UseInMemoryDatabase("Todo"));
 
 builder.Services.AddControllers().AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
 builder.Services.AddDbContextPool<Ootdv1Context>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlServerOptions =>
     {
         sqlServerOptions.EnableRetryOnFailure();
+        sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     })
 );
 
@@ -91,31 +89,21 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(@"/root/.aspnet/DataProtection-Keys"))
     .SetApplicationName("OOTD-API-CORE");
 
-
 var app = builder.Build();
 
-// <snippet_Middleware>
-// if (app.Environment.IsDevelopment())
-// {
-    // Add OpenAPI 3.0 document serving middleware
-    // Available at: http://localhost:<port>/swagger/v1/swagger.json
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
     app.UseOpenApi();
-
-    // Add web UIs to interact with the document
-    // Available at: http://localhost:<port>/swagger
     app.UseSwaggerUi(c =>
     {
         c.DocExpansion = "list";
     });
-
-    // Add ReDoc UI to interact with the document
-    // Available at: http://localhost:<port>/redoc
     app.UseReDoc(options =>
     {
         options.Path = "/redoc";
     });
-// }
-// </snippet_Middleware>
+}
 
 app.UseCors(builder => builder
     .AllowAnyOrigin()
@@ -134,7 +122,6 @@ using (var serviceScope = app.Services.CreateScope())
 
     //context.TodoItems.Add(new TodoItem { Name = "Item #1" });
     //await context.SaveChangesAsync();
-
 }
 
 app.Run();

@@ -36,6 +36,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var result = await db.Orders
+                .AsNoTracking()
                 .Where(x => x.Uid == uid)
                 .Select(x =>
                 new ResponseOrderDto
@@ -75,6 +76,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var order = await db.Orders
+                .AsNoTracking()
                 .Include(o => o.Status)
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Pvc)
@@ -136,7 +138,7 @@ namespace OOTD_API.Controllers
             // 建立訂單
             var order = new Order()
             {
-                OrderId = db.Orders.Any() ? db.Orders.Max(x => x.OrderId) + 1 : 1,
+                OrderId = await db.Orders.AsNoTracking().AnyAsync() ? await db.Orders.AsNoTracking().MaxAsync(x => x.OrderId) + 1 : 1,
                 Uid = uid,
                 StatusId = 4,
                 CreatedAt = DateTime.UtcNow
@@ -146,7 +148,7 @@ namespace OOTD_API.Controllers
 
             // 建立訂單細節並扣除庫存
             var orderDetails = new List<OrderDetail>();
-            var orderDetailIDAcc = db.OrderDetails.Any() ? db.OrderDetails.Max(x => x.OrderDetailId) + 1 : 1;
+            var orderDetailIDAcc = await db.OrderDetails.AsNoTracking().AnyAsync() ? await db.OrderDetails.AsNoTracking().MaxAsync(x => x.OrderDetailId) + 1 : 1;
             foreach (var detail in dto.Details)
             {
                 var orderDetail = new OrderDetail()

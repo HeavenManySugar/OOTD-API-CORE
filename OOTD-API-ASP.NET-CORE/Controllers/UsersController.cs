@@ -49,7 +49,7 @@ namespace OOTD_API.Controllers
                 return BadRequest("User ID is missing in the token.");
             }
 
-            var user = await db.Users.Include(u => u.Stores).FirstOrDefaultAsync(x => x.Uid == int.Parse(Uid));
+            var user = await db.Users.Include(u => u.Stores).AsNoTracking().FirstOrDefaultAsync(x => x.Uid == int.Parse(Uid));
             if (user == null)
             {
                 return NotFound("User not found.");
@@ -92,8 +92,9 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(ResponseUsersForAdminDto))]
         public async Task<IActionResult> GetUsers(int page = 1, int pageLimitNumber = 50, bool isASC = true)
         {
-            var temp = isASC ? db.Users.OrderBy(x => x.Uid) : db.Users.OrderByDescending(x => x.Uid);
+            var temp = isASC ? db.Users.AsNoTracking().OrderBy(x => x.Uid) : db.Users.AsNoTracking().OrderByDescending(x => x.Uid);
             var result = await temp
+                .AsNoTracking()
                 .Skip((page - 1) * pageLimitNumber)
                 .Take(pageLimitNumber)
                 .Select(x => new ResponseUserForAdminDto
@@ -127,7 +128,7 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(TokenDto))]
         public async Task<IActionResult> Login([FromBody] RequestLoginDto dto)
         {
-            User user = await db.Users.FirstOrDefaultAsync(x => x.Email == dto.Email && x.Password == dto.Password);
+            User user = await db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == dto.Email && x.Password == dto.Password);
             if (user == null)
                 return CatStatusCode.Unauthorized(); // 登入失敗
             if (!user.Enabled)
@@ -148,12 +149,12 @@ namespace OOTD_API.Controllers
         public async Task<IActionResult> Register([FromBody] RequestRegisterDto dto)
         {
             // 檢查是否有相同 email
-            if (await db.Users.AnyAsync(x => x.Email == dto.Email))
+            if (await db.Users.AsNoTracking().AnyAsync(x => x.Email == dto.Email))
                 return CatStatusCode.Conflict();
 
             User user = new User()
             {
-                Uid = await db.Users.AnyAsync() ? await db.Users.MaxAsync(x => x.Uid) + 1 : 1,
+                Uid = await db.Users.AsNoTracking().AnyAsync() ? await db.Users.AsNoTracking().MaxAsync(x => x.Uid) + 1 : 1,
                 Username = dto.Username,
                 Password = dto.Password,
                 Email = dto.Email,
@@ -175,7 +176,7 @@ namespace OOTD_API.Controllers
         [Route("~/api/User/ModifyUserEnabled")]
         public async Task<IActionResult> ModifyUserEnabled(RequestModifyUserEnabledDto dto)
         {
-            if (!await db.Users.AnyAsync(x => x.Uid == dto.UID))
+            if (!await db.Users.AsNoTracking().AnyAsync(x => x.Uid == dto.UID))
                 return CatStatusCode.BadRequest();
             var user = await db.Users.FindAsync(dto.UID);
             user.Enabled = dto.enabled;

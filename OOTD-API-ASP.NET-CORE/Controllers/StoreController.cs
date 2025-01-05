@@ -38,6 +38,7 @@ namespace OOTD_API.Controllers
         {
             var allFilterStores = await db.Stores
                 .Include(s => s.Owner)
+                .AsNoTracking()
                 .Where(x => x.Enabled)
                 .Where(x => x.Name.Contains(keyword) || x.Description.Contains(keyword))
                 .Select(x => new ResponseStoreDto
@@ -78,6 +79,7 @@ namespace OOTD_API.Controllers
         {
             var store = await db.Stores
                 .Include(s => s.Owner)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Enabled && x.StoreId == storeID);
             if (store == null)
                 return CatStatusCode.NotFound();
@@ -106,6 +108,7 @@ namespace OOTD_API.Controllers
 
             var store = await db.Stores
                 .Include(s => s.Owner)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Enabled && x.OwnerId == uid);
 
             if (store == null)
@@ -141,6 +144,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var store = await db.Stores
+                .AsNoTracking()
                 .FirstAsync(x => x.OwnerId == uid);
 
             var orderDetails = await db.OrderDetails
@@ -151,6 +155,7 @@ namespace OOTD_API.Controllers
                 .ThenInclude(o => o.Status)
                 .Include(od => od.Order.Coupon)
                 .Include(od => od.Order.UidNavigation)
+                .AsNoTracking()
                 .Where(x => x.Pvc.Product.StoreId == store.StoreId)
                 .ToListAsync(); // 先執行查詢
 
@@ -193,11 +198,13 @@ namespace OOTD_API.Controllers
 
             var store = await db.Stores
                 .Include(s => s.Owner)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Enabled && x.OwnerId == uid);
 
             var productGroups = await db.ProductVersionControls
                 .Include(s => s.Product)
                 .Include(s => s.Product.ProductImages)
+                .AsNoTracking()
                 .Where(x => x.Product.StoreId == store.StoreId)
                 .GroupBy(x => x.ProductId)
                 .ToListAsync(); // Execute the query up to this point
@@ -236,12 +243,14 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var store = await db.Stores
+                .AsNoTracking()
                 .FirstAsync(x => x.Enabled && x.OwnerId == uid);
 
             var result = await db.Ratings
                 .Include(r => r.Product)
                 .ThenInclude(p => p.ProductVersionControls)
                 .Include(r => r.Product.ProductImages)
+                .AsNoTracking()
                 .Where(x => x.Product.StoreId == store.StoreId)
                 .Select(x => new ResponseRatingDto
                 {
@@ -270,6 +279,7 @@ namespace OOTD_API.Controllers
             var temp = isASC ? db.Stores.OrderBy(x => x.StoreId) : db.Stores.OrderByDescending(x => x.StoreId);
             var result = await temp
                .Include(s => s.Owner)
+               .AsNoTracking()
                .Skip((page - 1) * pageLimitNumber)
                .Take(pageLimitNumber)
                .Select(x => new ResponseStoreForAdminDto
@@ -304,14 +314,14 @@ namespace OOTD_API.Controllers
         public async Task<IActionResult> CreateStore(RequestCreateStoreDto dto)
         {
             // 沒有這個用戶
-            if (!await db.Users.AnyAsync(x => x.Uid == dto.OwnerID))
+            if (!await db.Users.AsNoTracking().AnyAsync(x => x.Uid == dto.OwnerID))
                 return CatStatusCode.BadRequest();
             // 這個用戶已經有商店
-            if (await db.Stores.AnyAsync(x => x.OwnerId == dto.OwnerID))
+            if (await db.Stores.AsNoTracking().AnyAsync(x => x.OwnerId == dto.OwnerID))
                 return CatStatusCode.BadRequest();
             var store = new Store()
             {
-                StoreId = await db.Stores.AnyAsync() ? await db.Stores.MaxAsync(x => x.StoreId) + 1 : 1,
+                StoreId = await db.Stores.AsNoTracking().AnyAsync() ? await db.Stores.AsNoTracking().MaxAsync(x => x.StoreId) + 1 : 1,
                 OwnerId = dto.OwnerID,
                 Name = dto.Name,
                 Description = dto.Description,

@@ -36,6 +36,7 @@ namespace OOTD_API.Controllers
             var Uid = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
             var result = await db.UserCoupons
+                .AsNoTracking()
                 .Where(x => x.Coupon.Enabled && DateTime.UtcNow >= x.Coupon.StartDate && DateTime.UtcNow <= x.Coupon.ExpireDate)
                 .Where(x => x.Uid == int.Parse(Uid ?? "0") && x.Quantity > 0)
                 .Select(x => new ResponseUserCouponDto
@@ -63,6 +64,7 @@ namespace OOTD_API.Controllers
         public async Task<IActionResult> GetAllCoupons()
         {
             var result = await db.Coupons
+                .AsNoTracking()
                 .Select(x =>
                     new ResponseCouponDto
                     {
@@ -92,7 +94,7 @@ namespace OOTD_API.Controllers
         {
             var coupon = new Coupon()
             {
-                CouponId = await db.Coupons.AnyAsync() ? await db.Coupons.MaxAsync(x => x.CouponId) + 1 : 1,
+                CouponId = await db.Coupons.AsNoTracking().AnyAsync() ? await db.Coupons.AsNoTracking().MaxAsync(x => x.CouponId) + 1 : 1,
                 Name = dto.Name,
                 Description = dto.Description,
                 Discount = dto.Discount,
@@ -114,7 +116,7 @@ namespace OOTD_API.Controllers
         [Route("~/api/Coupon/GiveCouponToAllUser")]
         public async Task<IActionResult> GiveCouponToAllUser(int couponId, int count)
         {
-            var couponFlag = await db.Coupons.AnyAsync(x => x.CouponId == couponId);
+            var couponFlag = await db.Coupons.AsNoTracking().AnyAsync(x => x.CouponId == couponId);
             if (!couponFlag)
                 return CatStatusCode.BadRequest();
 
@@ -144,8 +146,8 @@ namespace OOTD_API.Controllers
         [Route("~/api/Coupon/GiveCouponToSpecificlUser")]
         public async Task<IActionResult> GiveCouponToSpecificlUser(RequsetGiveCouponToSpecificlUserDto dto)
         {
-            var couponFlag = await db.Coupons.AnyAsync(x => x.CouponId == dto.CouponID);
-            var userFlag = await db.Users.AnyAsync(x => x.Uid == dto.UID);
+            var couponFlag = await db.Coupons.AsNoTracking().AnyAsync(x => x.CouponId == dto.CouponID);
+            var userFlag = await db.Users.AsNoTracking().AnyAsync(x => x.Uid == dto.UID);
             if (!(couponFlag && userFlag))
                 return CatStatusCode.BadRequest();
 
@@ -158,7 +160,7 @@ namespace OOTD_API.Controllers
             {
                 await db.UserCoupons.AddAsync(new UserCoupon()
                 {
-                    UserCouponId = await db.UserCoupons.AnyAsync() ? await db.UserCoupons.MaxAsync(x => x.UserCouponId) + 1 : 1,
+                    UserCouponId = await db.UserCoupons.AsNoTracking().AnyAsync() ? await db.UserCoupons.AsNoTracking().MaxAsync(x => x.UserCouponId) + 1 : 1,
                     Uid = dto.UID,
                     CouponId = dto.CouponID,
                     Quantity = dto.Count

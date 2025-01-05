@@ -39,6 +39,7 @@ namespace OOTD_API.Controllers
                 .Include(r => r.Product)
                 .ThenInclude(p => p.ProductVersionControls)
                 .Include(r => r.Product.ProductImages)
+                .AsNoTracking()
                 .Where(x => x.ProductId == productId)
                 .Select(x => new ResponseRatingDto()
                 {
@@ -69,6 +70,7 @@ namespace OOTD_API.Controllers
             var orderCount = await db.OrderDetails
                 .Include(od => od.Order)
                 .Include(od => od.Pvc)
+                .AsNoTracking()
                 .CountAsync(x => x.Order.Uid == uid && x.Pvc.ProductId == productId);
             var ratingCount = await db.Ratings.CountAsync(x => x.Uid == uid && x.ProductId == productId);
             var remainingRatingTimes = Math.Max(0, orderCount - ratingCount);
@@ -89,15 +91,15 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var orderCount = await db.OrderDetails.CountAsync(x => x.Order.Uid == uid && x.Pvc.ProductId == dto.ProductID);
-            var ratingCount = await db.Ratings.CountAsync(x => x.Uid == uid && x.ProductId == dto.ProductID);
+            var orderCount = await db.OrderDetails.AsNoTracking().CountAsync(x => x.Order.Uid == uid && x.Pvc.ProductId == dto.ProductID);
+            var ratingCount = await db.Ratings.AsNoTracking().CountAsync(x => x.Uid == uid && x.ProductId == dto.ProductID);
 
             if (ratingCount + 1 > orderCount)
                 return CatStatusCode.BadRequest();
 
             var rating = new Rating()
             {
-                RatingId = db.Ratings.Any() ? db.Ratings.Max(x => x.RatingId) + 1 : 1,
+                RatingId = await db.Ratings.AsNoTracking().AnyAsync() ? await db.Ratings.AsNoTracking().MaxAsync(x => x.RatingId) + 1 : 1,
                 ProductId = dto.ProductID,
                 Uid = uid,
                 Rating1 = dto.Rating,

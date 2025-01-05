@@ -25,7 +25,7 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(List<string>))]
         public async Task<IActionResult> GetTopKeyword(int count = 5)
         {
-            var result = await db.ProductKeywords
+            var result = await db.ProductKeywords.AsNoTracking()
                 .Select(x => new
                 {
                     Keyword = x.Keyword,

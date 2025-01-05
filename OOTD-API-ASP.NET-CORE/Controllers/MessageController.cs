@@ -42,6 +42,7 @@ namespace OOTD_API.Controllers
             var messages = await db.Messages
                 .Include(m => m.Receiver)
                 .Include(m => m.Sender)
+                .AsNoTracking()
                 .Where(x => x.Receiver.Uid == uid || x.Sender.Uid == uid)
                 .ToListAsync();
 
@@ -70,6 +71,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             var messages = await db.Messages
+                .AsNoTracking()
                 .Where(x => (x.Receiver.Uid == uid && x.Sender.Uid == contactUID) || (x.Receiver.Uid == contactUID && x.Sender.Uid == uid))
                 .Select(x =>
                     new ResponseMessageDto
@@ -98,13 +100,13 @@ namespace OOTD_API.Controllers
             if (sendMessageToSelf)
                 return CatStatusCode.BadRequest();
 
-            bool receiverNotExists = !db.Users.Any(x => x.Uid == dto.ReceiverID);
+            bool receiverNotExists = !await db.Users.AsNoTracking().AnyAsync(x => x.Uid == dto.ReceiverID);
             if (receiverNotExists)
                 return CatStatusCode.BadRequest();
 
             var message = new Message()
             {
-                MessageId = db.Messages.Any() ? db.Messages.Max(x => x.MessageId) + 1 : 1,
+                MessageId = await db.Messages.AsNoTracking().AnyAsync() ? await db.Messages.AsNoTracking().MaxAsync(x => x.MessageId) + 1 : 1,
                 SenderId = uid,
                 ReceiverId = dto.ReceiverID,
                 Message1 = dto.Message,

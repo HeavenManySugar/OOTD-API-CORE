@@ -35,7 +35,8 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(List<ResponseRequestDto>))]
         public async Task<IActionResult> GetRequests()
         {
-            var result = await db.Requests.Select(
+            var result = await db.Requests
+                .AsNoTracking().Select(
                 x => new ResponseRequestDto
                 {
                     ID = x.RequestId,
@@ -59,7 +60,7 @@ namespace OOTD_API.Controllers
         public async Task<IActionResult> GetOwnRequests()
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-            var user = await db.Users.Include(u => u.Requests).ThenInclude(r => r.Status).FirstAsync(u => u.Uid == uid);
+            var user = await db.Users.Include(u => u.Requests).ThenInclude(r => r.Status).AsNoTracking().FirstAsync(u => u.Uid == uid);
             if (!user.Requests.Any())
                 return CatStatusCode.NotFound();
             var result = user.Requests.Select(x => new ResponseOwnRequestDto()
@@ -83,7 +84,7 @@ namespace OOTD_API.Controllers
 
             Request request = new Request
             {
-                RequestId = db.Requests.Max(x => x.RequestId) + 1,
+                RequestId = await db.Requests.AsNoTracking().MaxAsync(x => x.RequestId) + 1,
                 Uid = uid,
                 CreatedAt = DateTime.UtcNow,
                 Message = message,
@@ -107,7 +108,7 @@ namespace OOTD_API.Controllers
                 return CatStatusCode.BadRequest();
             var request = await db.Requests.FindAsync(requestID);
             request.StatusId = (int)status;
-            if (!await db.Statuses.AnyAsync(s => s.StatusId == (int)status))
+            if (!await db.Statuses.AsNoTracking().AnyAsync(s => s.StatusId == (int)status))
                 return CatStatusCode.BadRequest();
             await db.SaveChangesAsync();
             return CatStatusCode.Ok();

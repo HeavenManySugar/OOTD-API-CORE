@@ -250,7 +250,8 @@ namespace OOTD_API.Controllers
                     CreatedAt = x.CreatedAt,
                     ProductID = x.ProductId,
                     ProductName = x.Product.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault().Name,
-                    ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url
+                    ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url,
+                    Description = x.Description != null ? x.Description : null
                 }).ToListAsync();
             if (result.Count == 0)
                 return CatStatusCode.NotFound();

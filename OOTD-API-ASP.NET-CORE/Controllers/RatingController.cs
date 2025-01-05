@@ -47,7 +47,8 @@ namespace OOTD_API.Controllers
                     CreatedAt = x.CreatedAt,
                     ProductID = x.ProductId,
                     ProductName = x.Product.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault().Name,
-                    ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url
+                    ProductImageUrl = x.Product.ProductImages.FirstOrDefault().Url,
+                    Description = x.Description != null ? x.Description : null
                 })
                 .ToListAsync();
             //if (result.Count == 0)
@@ -100,7 +101,8 @@ namespace OOTD_API.Controllers
                 ProductId = dto.ProductID,
                 Uid = uid,
                 Rating1 = dto.Rating,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Description = dto.Description
             };
 
             db.Ratings.Add(rating);
@@ -117,6 +119,7 @@ namespace OOTD_API.Controllers
         {
             public int ProductID { get; set; }
             public double Rating { get; set; }
+            public string Description { get; set; } = null;
         }
 
         public class ResponseRatingDto
@@ -127,6 +130,7 @@ namespace OOTD_API.Controllers
             public int ProductID { get; set; }
             public string ProductName { get; set; }
             public string ProductImageUrl { get; set; }
+            public string Description { get; set; }
 
         }
     }

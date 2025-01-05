@@ -13,7 +13,7 @@ RUN dotnet restore
 RUN dotnet publish -c Release -o out
 
 # Use the official .NET 8 runtime image as the runtime environment
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine3.20 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 
 # Set the working directory
 WORKDIR /app

@@ -250,6 +250,7 @@ public partial class Ootdv1Context : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("RatingID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.Rating1).HasColumnName("Rating");
             entity.Property(e => e.Uid).HasColumnName("UID");

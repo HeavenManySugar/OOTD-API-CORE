@@ -15,6 +15,8 @@ public partial class Rating
 
     public DateTime CreatedAt { get; set; }
 
+    public string? Description { get; set; }
+
     public virtual Product Product { get; set; } = null!;
 
     public virtual User UidNavigation { get; set; } = null!;

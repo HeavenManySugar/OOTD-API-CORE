@@ -160,7 +160,7 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var cartProduct = await db.CartProducts.Include(cp => cp.Product).ThenInclude(p => p.Store).Where(x => x.Uid == uid).ToListAsync();
+            var cartProduct = await db.CartProducts.Include(cp => cp.Product).ThenInclude(p => p.Store).Include(cp => cp.Product.ProductImages).Where(x => x.Uid == uid).ToListAsync();
             foreach (var item in cartProduct)
             {
                 if (!item.Product.Enabled || !item.Product.Store.Enabled)
@@ -173,8 +173,7 @@ namespace OOTD_API.Controllers
 
             var productVersionControls = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
-                .ThenInclude(p => p.ProductImages)
-                .Include(pvc => pvc.Product.Store)
+                .ThenInclude(p => p.Store)
                 .AsNoTracking()
                 .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
                 .GroupBy(x => x.ProductId)

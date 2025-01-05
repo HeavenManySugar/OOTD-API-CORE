@@ -35,12 +35,12 @@ namespace OOTD_API.Controllers
         public async Task<IActionResult> GetProductRating(int productId)
         {
             var result = await db.Ratings
+                .AsNoTracking()
+                .Where(x => x.ProductId == productId)
                 .Include(r => r.UidNavigation)
                 .Include(r => r.Product)
                 .ThenInclude(p => p.ProductVersionControls)
                 .Include(r => r.Product.ProductImages)
-                .AsNoTracking()
-                .Where(x => x.ProductId == productId)
                 .Select(x => new ResponseRatingDto()
                 {
                     Username = x.UidNavigation.Username,

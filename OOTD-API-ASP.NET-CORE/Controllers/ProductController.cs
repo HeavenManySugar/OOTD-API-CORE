@@ -71,13 +71,14 @@ namespace OOTD_API.Controllers
         {
             var product = await db.Products
                 .Include(p => p.ProductVersionControls)
+                .Include(p => p.Store)
+                .AsNoTracking()
+                .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
+                .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.OrderDetails)
-                .Include(p => p.Store)
-                .AsNoTracking()
-                .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
                 .Select(x =>
                 new ProdcutWithSale()
                 {
@@ -100,13 +101,14 @@ namespace OOTD_API.Controllers
         {
             var product = await db.Products
                 .Include(p => p.ProductVersionControls)
+                .Include(p => p.Store)
+                .AsNoTracking()
+                .Where(x => x.Enabled && x.Store.Enabled && x.StoreId == storeId && x.ProductVersionControls.Any())
+                .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
                 .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.OrderDetails)
-                .Include(p => p.Store)
-                .AsNoTracking()
-                .Where(x => x.Enabled && x.Store.Enabled && x.StoreId == storeId && x.ProductVersionControls.Any())
                 .Select(x =>
                 new ProdcutWithSale()
                 {
@@ -180,14 +182,15 @@ namespace OOTD_API.Controllers
 
             var product = await db.Products
               .Include(p => p.ProductVersionControls)
+              .Include(p => p.Store)
+              .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
+              .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.Product)
               .ThenInclude(p => p.ProductImages)
               .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.OrderDetails)
-              .Include(p => p.Store)
               .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.Product.ProductKeywords)
-              .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
               .AsNoTracking()
               .Select(x =>
                 new ProdcutWithSale()
@@ -216,13 +219,15 @@ namespace OOTD_API.Controllers
         {
             var product = await db.Products
               .Include(p => p.ProductVersionControls)
+              .Include(p => p.Store)
+              .AsNoTracking()
+              .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
+              .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.Product)
               .ThenInclude(p => p.ProductImages)
               .Include(p => p.ProductVersionControls)
               .ThenInclude(pvc => pvc.OrderDetails)
               .Include(p => p.Store)
-              .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
-              .AsNoTracking()
               .Select(x =>
                 new ProdcutWithSale()
                 {
@@ -256,12 +261,13 @@ namespace OOTD_API.Controllers
             }
 
             var product = await db.Products
+                .Include(p => p.ProductVersionControls)
+                .Include(p => p.Store)
+                .AsNoTracking()
+                .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
                 .Include(p => p.ProductImages)
                 .Include(p => p.ProductVersionControls)
                 .ThenInclude(pvc => pvc.OrderDetails)
-                .Include(p => p.Store)
-                .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
-                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ProductId == id);
 
             if (product == null)
@@ -297,11 +303,12 @@ namespace OOTD_API.Controllers
         {
             var productVersionControl = await db.ProductVersionControls
                 .Include(pvc => pvc.Product)
-                .ThenInclude(p => p.ProductImages)
                 .Include(pvc => pvc.Product.Store)
                 .AsNoTracking()
                 .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
                 .Where(x => x.Pvcid == PVCID)
+                .Include(pvc => pvc.Product)
+                .ThenInclude(p => p.ProductImages)
                 .FirstOrDefaultAsync();
 
             if (productVersionControl == null)

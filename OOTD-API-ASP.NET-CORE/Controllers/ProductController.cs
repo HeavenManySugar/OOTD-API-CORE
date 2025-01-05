@@ -56,11 +56,12 @@ namespace OOTD_API.Controllers
                     Sale = x.Sale,
                     Images = x.LastestPVC.Product.ProductImages.Select(img => img.Url).ToList()
                 }).ToList();
-            return new ResponseProductsDto()
+
+            return await Task.FromResult(new ResponseProductsDto()
             {
                 PageCount = pageCount,
                 Products = result
-            };
+            });
         }
 
         [HttpGet]
@@ -68,20 +69,36 @@ namespace OOTD_API.Controllers
         [ResponseType(typeof(ResponseProductsDto))]
         public async Task<IActionResult> GetAllProductsAsync(int page = 1, int pageLimitNumber = 50, ProductOrderField orderField = ProductOrderField.Default, bool isASC = true)
         {
-            var product = await db.ProductVersionControls
-                .Include(pvc => pvc.Product)
+            //var product = await db.ProductVersionControls
+            //    .Include(pvc => pvc.Product)
+            //    .ThenInclude(p => p.ProductImages)
+            //    .Include(pvc => pvc.OrderDetails)
+            //    .Include(pvc => pvc.Product.Store)
+            //    .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
+            //    .GroupBy(x => x.ProductId)
+            //    .Select(x =>
+            //    new ProdcutWithSale()
+            //    {
+            //        Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
+            //        LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
+            //    })
+            //    .ToListAsync();
+
+            var product = await db.Products
+                .Include(p => p.ProductVersionControls)
+                .ThenInclude(pvc => pvc.Product)
                 .ThenInclude(p => p.ProductImages)
-                .Include(pvc => pvc.OrderDetails)
-                .Include(pvc => pvc.Product.Store)
-                .Where(x => x.Product.Enabled && x.Product.Store.Enabled)
-                .GroupBy(x => x.ProductId)
+                .Include(p => p.ProductVersionControls)
+                .ThenInclude(pvc => pvc.OrderDetails)
+                .Include(p => p.Store)
+                .Where(x => x.Enabled && x.Store.Enabled && x.ProductVersionControls.Any())
+                .AsNoTracking()
                 .Select(x =>
                 new ProdcutWithSale()
                 {
-                    Sale = x.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
-                    LastestPVC = x.OrderByDescending(y => y.Version).FirstOrDefault()
-                })
-                .ToListAsync();
+                    Sale = x.ProductVersionControls.Sum(y => y.OrderDetails.Any() ? y.OrderDetails.Sum(z => z.Quantity) : 0),
+                    LastestPVC = x.ProductVersionControls.OrderByDescending(y => y.Version).FirstOrDefault()
+                }).ToListAsync();
 
             var result = await GenerateProductPageAsync(product, page, pageLimitNumber, orderField, isASC);
 

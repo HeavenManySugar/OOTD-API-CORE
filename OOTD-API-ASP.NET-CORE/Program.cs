@@ -18,6 +18,15 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning); // 設定為 Warning 或更高層級
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(5000); // HTTP 端口
+    options.ListenAnyIP(8080, listenOptions =>
+    {
+        listenOptions.UseHttps(); // HTTPS 端口
+    });
+});
+
 // 配置 JWT 驗證
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

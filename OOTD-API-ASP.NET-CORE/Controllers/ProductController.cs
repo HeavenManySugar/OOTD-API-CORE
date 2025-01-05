@@ -28,7 +28,7 @@ namespace OOTD_API.Controllers
 
         }
 
-        private Dictionary<ProductOrderField, Func<ProdcutWithSale, object>> keySelector = new Dictionary<ProductOrderField, Func<ProdcutWithSale, object>>
+        readonly private Dictionary<ProductOrderField, Func<ProdcutWithSale, object>> keySelector = new Dictionary<ProductOrderField, Func<ProdcutWithSale, object>>
         {
             { ProductOrderField.Price, x => x.LastestPVC.Price },
             { ProductOrderField.Quantity, x => x.LastestPVC.Product.Quantity },
@@ -127,8 +127,15 @@ namespace OOTD_API.Controllers
         {
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
-            var cart = await db.CartProducts.Where(x => x.Uid == uid).ToListAsync();
-            if (cart.Count == 0)
+            var cartProduct = await db.CartProducts.Include(cp => cp.Product).ThenInclude(p => p.Store).Where(x => x.Uid == uid).ToListAsync();
+            foreach (var item in cartProduct)
+            {
+                if (!item.Product.Enabled || !item.Product.Store.Enabled)
+                    cartProduct.Remove(item);
+            }
+            await db.SaveChangesAsync();
+            cartProduct = await db.CartProducts.Where(x => x.Uid == uid).ToListAsync();
+            if (cartProduct.Count == 0)
                 return CatStatusCode.NotFound();
 
             var productVersionControls = await db.ProductVersionControls
@@ -140,7 +147,7 @@ namespace OOTD_API.Controllers
                 .Select(g => g.OrderByDescending(x => x.Version).FirstOrDefault())
                 .ToListAsync();
 
-            var result = cart.Select(c =>
+            var result = cartProduct.Select(c =>
             {
                 var productVersionControl = productVersionControls.FirstOrDefault(pvc => pvc.ProductId == c.ProductId);
                 return new ResponseCartProductDto
@@ -219,6 +226,8 @@ namespace OOTD_API.Controllers
                 .ToListAsync();
 
             var result = await GenerateProductPageAsync(product, 1, count, ProductOrderField.Sale, false);
+            if (result.Products.Count == 0)
+                return CatStatusCode.NotFound();
             return Ok(result.Products);
         }
         /// <summary>
@@ -426,7 +435,7 @@ namespace OOTD_API.Controllers
             var uid = int.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
 
             // 沒有這個商品
-            if (!await db.Products.AnyAsync(x => x.ProductId == dto.ProductID))
+            if (!await db.Products.Include(p => p.Store).Where(x => x.Enabled && x.Store.Enabled).AnyAsync(x => x.ProductId == dto.ProductID))
                 return CatStatusCode.BadRequest();
 
             // 已經存在的產品

@@ -82,7 +82,8 @@ builder.Services.AddDbContextPool<Ootdv1Context>(options =>
     {
         sqlServerOptions.EnableRetryOnFailure();
         sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-    })
+    }),
+    poolSize: 64);
 );
 
 builder.Services.AddDataProtection()

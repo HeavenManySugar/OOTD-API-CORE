@@ -179,6 +179,8 @@ namespace OOTD_API.Controllers
             if (!await db.Users.AsNoTracking().AnyAsync(x => x.Uid == dto.UID))
                 return CatStatusCode.BadRequest();
             var user = await db.Users.FindAsync(dto.UID);
+            if (user.IsAdministrator)
+                return CatStatusCode.Forbidden();
             user.Enabled = dto.enabled;
             await db.SaveChangesAsync();
             return CatStatusCode.Ok();

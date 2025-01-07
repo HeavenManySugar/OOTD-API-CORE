@@ -6,6 +6,8 @@ using NSwag;
 using NSwag.Generation.Processors.Security;
 using OOTD_API.Models;
 using OOTD_API.Security;
+using OOTD_API.Services;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
@@ -18,6 +20,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning); // 設定為 Warning 或更高層級
 
+builder.Services.AddScoped<IUserService, UserService>();
 // 配置 JWT 驗證
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -34,6 +37,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
+                var userId = context.Principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                Console.WriteLine($"userId: {userId}");
+
+                if (userId == null || !await userService.IsUserEnabledAsync(userId))
+                {
+                    context.Fail("Unauthorized");
+                }
+            },
             OnChallenge = context =>
             {
                 context.HandleResponse();

@@ -1,7 +1,7 @@
 # OOTD-API-ASP.NET-CORE
 
 ## 部署方式
-手動部署:
+### 手動部署:
 > [!NOTE]
 > 請先確保安裝.NET 8.0 SDK環境
 ```sh
@@ -12,7 +12,7 @@ dotnet run
 ```
 對於Windows用戶也可直接使用Visual Studio開啟OOTD-API-ASP.NET-CORE.sln
 
-快速體驗 (Docker Compose):
+### 快速體驗 (Docker Compose):
 
 [OOTD-FullStack](https://github.com/HeavenManySugar/OOTD-FullStack)
 

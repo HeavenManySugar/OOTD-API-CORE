@@ -41,7 +41,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
                 var userId = context.Principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-                Console.WriteLine($"userId: {userId}");
 
                 if (userId == null || !await userService.IsUserEnabledAsync(userId))
                 {

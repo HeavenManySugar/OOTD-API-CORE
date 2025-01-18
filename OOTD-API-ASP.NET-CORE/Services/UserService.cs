@@ -17,7 +17,6 @@ namespace OOTD_API.Services
             var user = await _context.Users
                 .Where(u => u.Uid.ToString() == userId)
                 .FirstOrDefaultAsync();
-            Console.WriteLine($"user: {user.Uid}");
             return user != null && user.Enabled;
         }
     }
